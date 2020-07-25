@@ -1,5 +1,14 @@
 import render from './render.js'
 
+export const mix = (...fns) => (data, params) => {
+  let context = {}
+  for (const fn of fns) {
+    context = Context(data).merge(context)
+    render(fn, context, params)
+  }
+  Object.assign(data, context)
+}
+
 const proto = {
   valueOf: {
     value () { return this.t }
@@ -108,12 +117,6 @@ export const Context = (data, params = {}) => {
   data.beatRate = mix.beatRate = beatRateOf(mix)
 
   return mix
-}
-
-export const mix = fn => (context, params) => {
-  const ctx = Context(context)
-  render(fn, ctx, params)
-  Object.assign(context, ctx)
 }
 
 const beatRateOf = context => {

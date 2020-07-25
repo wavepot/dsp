@@ -183,6 +183,30 @@ describe("render = mix(deeplyNested)", () => {
   })
 })
 
+describe("mix multiple fns", () => {
+  it("should add to same buffer", () => {
+    const buffer = [new Float32Array(4)]
+    const render = mix(
+      () => 1,
+      ({ input }) => input + 1,
+      ({ input }) => input + 1,
+    )
+    render({ buffer })
+    const expected = [3,3,3,3]
+    expect(buffer[0]).to.be.buffer(expected)
+  })
+})
+
+describe("mix part of context", () => {
+  it("should be accessed from within context", () => {
+    const buffer = [new Float32Array(4)]
+    const render = mix(mix => mix(mix.mix(t => 1)))
+    render({ buffer })
+    const expected = [1,1,1,1]
+    expect(buffer[0]).to.be.buffer(expected)
+  })
+})
+
 describe("mono and stereo", () => {
   it("mono to mono", () => {
     const buffer = [new Float32Array(4)]
