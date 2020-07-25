@@ -34,6 +34,18 @@ describe("render = mix(fn)", () => {
       const expected = [0,1,2,3]
       expect(buffer[0]).to.be.buffer(expected)
     })
+
+    it("should write data in place", () => {
+      const buffer = [new Float32Array(4)]
+      const render = mix(counter)
+      const context = { buffer }
+      render(context)
+      const expected = [4,5,6,7]
+      expect(context.buffer[0]).to.be.buffer(expected)
+      expect(context.n).to.equal(4)
+      render(context)
+      expect(context.n).to.equal(8)
+    })
   })
 })
 

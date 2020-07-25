@@ -110,7 +110,11 @@ export const Context = (data, params = {}) => {
   return mix
 }
 
-export const mix = fn => (context, params) => render(fn, Context(context), params)
+export const mix = fn => (context, params) => {
+  const ctx = Context(context)
+  render(fn, ctx, params)
+  Object.assign(context, ctx)
+}
 
 const beatRateOf = context => {
   const rate = context.sampleRate
