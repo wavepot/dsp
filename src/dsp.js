@@ -84,12 +84,14 @@ export const Context = (data, params = {}) => {
 
   Object.defineProperties(mix, proto)
 
-  mix._input = {
-    pos: 0,
-    valueOf () {
-      return this[0] + (this[1] ?? 0)
+  Object.defineProperty(mix, '_input', {
+    value: {
+      pos: 0,
+      valueOf () {
+        return this[0] + (this[1] ?? 0)
+      }
     }
-  }
+  })
 
   for (const [i, buffer] of data.buffer.entries()) {
     Object.defineProperty(mix._input, i, {
