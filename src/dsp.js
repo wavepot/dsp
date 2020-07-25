@@ -17,6 +17,10 @@ const proto = {
     enumerable: false,
     get () { return (1 + this.n) / this.sampleRate }
   },
+  p: {
+    enumerable: false,
+    get () { return this.n % this.bufferSize }
+  },
   buffer: {
     value: null,
     enumerable: true,
@@ -45,7 +49,7 @@ const proto = {
   input: {
     enumerable: false,
     get () {
-      this._input.pos = this.n % this.bufferSize
+      this._input.pos = this.p
       return this._input
     },
     set () {

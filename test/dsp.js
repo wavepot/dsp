@@ -123,6 +123,34 @@ describe("render = mix(fn)", () => {
   })
 })
 
+describe("render = mix(fn)", () => {
+  describe("integrator `p`", () => {
+    it("should loop buffer size", () => {
+      const buffer = [new Float32Array(4)]
+      const render = mix(({ p }) => p)
+      const context = { buffer }
+      render(context)
+      expect(buffer[0]).to.be.buffer([0,1,2,3])
+      render(context)
+      expect(buffer[0]).to.be.buffer([0,1,2,3])
+    })
+  })
+})
+
+describe("render = mix(fn)", () => {
+  describe("integrator `n`", () => {
+    it("should loop buffer size", () => {
+      const buffer = [new Float32Array(4)]
+      const render = mix(({ n }) => n)
+      const context = { buffer }
+      render(context)
+      expect(buffer[0]).to.be.buffer([0,1,2,3])
+      render(context)
+      expect(buffer[0]).to.be.buffer([4,5,6,7])
+    })
+  })
+})
+
 describe("render = mix(nested)", () => {
   it("should render given nested fns as waterfall to given buffer", () => {
     const buffer = [new Float32Array(4)]
