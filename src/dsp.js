@@ -55,6 +55,9 @@ const proto = {
     enumerable: true,
     writable: true
   },
+  mix: {
+    value: mix
+  },
   input: {
     enumerable: false,
     get () {
