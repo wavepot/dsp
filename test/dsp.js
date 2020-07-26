@@ -31,8 +31,10 @@ describe("render = mix(fn)", () => {
     it("should render given fn to given buffer", () => {
       const buffer = [new Float32Array(4)]
       const render = mix(counter)
-      render({ buffer })
+      const context = { buffer }
+      render(context)
       const expected = [0,1,2,3]
+      expect(context.n).to.equal(4)
       expect(buffer[0]).to.be.buffer(expected)
     })
 
@@ -168,8 +170,13 @@ describe("render = mix(nested)", () => {
   it("should render given nested fns as waterfall to given buffer", () => {
     const buffer = [new Float32Array(4)]
     const render = mix(nested)
-    render({ buffer })
+    const context = { buffer }
+    render(context)
     const expected = [3,3,3,3]
+    expect(context.n).to.equal(4)
+    expect(buffer[0]).to.be.buffer(expected)
+    render(context)
+    expect(context.n).to.equal(8)
     expect(buffer[0]).to.be.buffer(expected)
   })
 })

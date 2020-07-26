@@ -1,12 +1,22 @@
 import render from './render.js'
+import load, { setDynamicCache } from './load.js'
+export { setDynamicCache }
 
 export const mix = (...fns) => (data, params) => {
   let context = {}
   for (const fn of fns) {
-    context = Context(data).merge(context)
+    context = Context(data).merge(context).merge({ n: data.n ?? 0 })
     render(fn, context, params)
   }
   Object.assign(data, context)
+}
+
+export const workerMix = (url) => load(url)
+
+export class Shared32Array extends Float32Array {
+  constructor (size) {
+    super(new SharedArrayBuffer(size * Float32Array.BYTES_PER_ELEMENT))
+  }
 }
 
 const proto = {
@@ -89,9 +99,10 @@ export const Context = (data, params = {}) => {
 
   const mix = (...fns) => {
     for (const fn of fns) {
-      context = Context(data).merge(context)
+      context = Context(data).merge(context).merge({ n: data.n ?? 0 })
       render(fn, context, params)
     }
+    Object.assign(mix, context)
   }
 
   Object.defineProperties(mix, proto)
