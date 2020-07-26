@@ -5,6 +5,7 @@ import counter from './fixtures/counter.js'
 import nested from './fixtures/nested.js'
 import deeplyNested from './fixtures/deeply-nested.js'
 import triangle from './fixtures/triangle.js'
+import asyncSetup from './fixtures/async-setup.js'
 
 describe("Context(fn)", () => {
   it("should return a context fn", () => {
@@ -373,5 +374,19 @@ describe("unsupported number of channels", () => {
     } catch (err) {
       expect(err.message).to.contain('unsupported')
     }
+  })
+})
+
+describe("mix(asyncSetup), await render({ buffer })", () => {
+  it("should render a dsp with an async setup", async () => {
+    const buffer = [new Float32Array(4)]
+    const context = { buffer }
+    const render = mix(await asyncSetup(context))
+    render(context)
+    expect(buffer[0]).to.be.buffer([0,1,2,3])
+    expect(context.n).to.equal(4)
+    render(context)
+    expect(buffer[0]).to.be.buffer([4,5,6,7])
+    expect(context.n).to.equal(8)
   })
 })
