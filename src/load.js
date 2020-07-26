@@ -41,11 +41,11 @@ export default (url) => {
   loader.render = (context, params = {}) => {
     context.url = url
     context.params = params
-    loader.context = context
+    loader.context = context.toJSON?.() ?? context
 
     if (loader.worker) {
       queueMicrotask(() =>
-        loader.worker.postMessage({ call: 'render', context }))
+        loader.worker.postMessage({ call: 'render', context: loader.context }))
     } else {
       createWorker(loader, context)
     }

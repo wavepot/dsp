@@ -68,6 +68,9 @@ const proto = {
   mix: {
     value: mix
   },
+  workerMix: {
+    value: workerMix
+  },
   input: {
     enumerable: false,
     get () {

@@ -1,5 +1,5 @@
 import './setup.js'
-import { Context, mix } from '../../src/dsp.js'
+import { Context, mix, Shared32Array } from '../../src/dsp.js'
 
 import counter from './fixtures/counter.js'
 import nested from './fixtures/nested.js'
@@ -212,6 +212,27 @@ describe("mix part of context", () => {
     render({ buffer })
     const expected = [1,1,1,1]
     expect(buffer[0]).to.be.buffer(expected)
+  })
+})
+
+describe("workerMix part of context", () => {
+  it("should be accessed from within context", async () => {
+    const buffer = [new Shared32Array(4)]
+    const context = { buffer }
+    let worker
+    const render = mix(mix => {
+      worker = mix.workerMix('/test/fixtures/adder.js')
+      worker.render(mix)
+    }, ({ input }) => input / 2)
+    render(context)
+    expect(buffer[0]).to.be.buffer([0,0,0,0])
+    await new Promise(resolve => worker.onrender = resolve)
+    worker.onrender = null
+    expect(buffer[0]).to.be.buffer([1,1,1,1])
+    render(context)
+    expect(buffer[0]).to.be.buffer([.5,.5,.5,.5])
+    await new Promise(resolve => worker.onrender = resolve)
+    expect(buffer[0]).to.be.buffer([1.5,1.5,1.5,1.5])
   })
 })
 
