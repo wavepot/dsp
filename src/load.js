@@ -22,24 +22,24 @@ const methods = {
   onrender (worker, data) {
     const context = Object.assign(worker.loader.context, data.context)
 
+    const { loader } = worker
     // stop previous worker
-    if (worker.loader.worker && worker !== worker.loader.worker) {
-      worker.loader.worker.terminate()
+    if (loader.worker && worker !== loader.worker) {
+      loader.worker.terminate()
     }
-    worker.loader.worker = worker
-
-    worker.loader.onrender?.()
+    loader.worker = worker
+    loader.render.onrender?.()
   },
   onerror (worker, data) {
     const error = deserializeError(data.error)
-    worker.loader.onerror?.(error)
+    worker.loader.render.onerror?.(error)
   }
 }
 
 export default (url) => {
   url = cache ? url[0] === '/' ? url : cache.path + '/' + url : url
   let loader = loaders[url]
-  if (loader) return loader
+  if (loader) return loader.render
 
   loader = loaders[url] = { url }
   loader.render = (context, params = {}) => {
@@ -55,7 +55,7 @@ export default (url) => {
     }
   }
 
-  return loader
+  return loader.render
 }
 
 const createWorker = (loader) => {
