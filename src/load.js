@@ -3,10 +3,13 @@ import { deserializeError } from '../lib/error.js'
 let cache = null
 
 export const setDynamicCache = (_cache) => {
-  cache = _cache
-  cache.addEventListener('update', ({ detail: filename }) => {
-    recreate(filename)
-  })
+  if (cache) cache.bus.close()
+
+  cache = { ..._cache }
+  cache.bus = new BroadcastChannel('dynamic-cache:' + cache.namespace)
+  cache.bus.onmessage = ({ data }) => {
+    recreate(data.filename)
+  }
 }
 
 export const loaders = {}
@@ -34,6 +37,7 @@ const methods = {
 }
 
 export default (url) => {
+  url = cache ? url[0] === '/' ? url : cache.path + '/' + url : url
   let loader = loaders[url]
   if (loader) return loader
 
@@ -55,7 +59,7 @@ export default (url) => {
 }
 
 const createWorker = (loader) => {
-  const worker = new Worker('/src/worker.js', { type: 'module' })
+  const worker = new Worker(import.meta.url.replace('load.js', 'worker.js'), { type: 'module' })
   worker.loader = loader
   worker.onerror = (error) => methods.onerror(worker, { error })
   worker.onmessage = ({ data }) => methods[data.call](worker, data)

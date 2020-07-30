@@ -1,4 +1,4 @@
-export default class DynamicCache extends EventTarget {
+export default class DynamicCache {
   static async cleanup () {
     const cacheKeys = await window.caches.keys()
     await Promise.all(cacheKeys
@@ -30,10 +30,17 @@ export default class DynamicCache extends EventTarget {
   }
 
   constructor (namespace, headers) {
-    super()
     this.namespace = namespace
     this.headers = headers
     this.path = '/dynamic-cache/cache/' + this.namespace
+  }
+
+  toJSON () {
+    return {
+      namespace: this.namespace,
+      headers: this.headers,
+      path: this.path
+    }
   }
 
   async put (filename, content, headers = this.headers) {
@@ -42,7 +49,8 @@ export default class DynamicCache extends EventTarget {
     const res = new Response(content, { status: 200, headers })
     const cache = await caches.open('dynamic-cache:' + this.namespace)
     await cache.put(req, res)
-    this.dispatchEvent(new CustomEvent('update', { detail: filename }))
+    const bus = new BroadcastChannel('dynamic-cache:' + this.namespace)
+    bus.postMessage({ type: 'update', filename })
     return filename
   }
 }
