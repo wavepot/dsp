@@ -133,8 +133,8 @@ describe("workerMix() fail to load module error", () => {
     render(context)
     expect(buffer[0]).to.be.buffer([0,0,0,0])
     const error = await new Promise(resolve => worker.onerror = resolve)
-    expect(error.stack).to.contain('resolve module specifier')
-    expect(error.stack).to.contain('fail fail fail')
+    expect(error.stack).to.contain('Failed to fetch')
+    expect(error.stack).to.contain('fail%20fail%20fail')
   })
 })
 

@@ -68,5 +68,5 @@ const createWorker = (loader) => {
 
 export const recreate = (url) => {
   const loader = loaders[url]
-  if (loader) createWorker(loader)
+  if (loader && loader.worker) createWorker(loader)
 }
