@@ -101,7 +101,7 @@ describe("render = mix(fn)", () => {
 })
 
 describe("render = mix(fn)", () => {
-  describe("default integrator `t`", () => {
+  describe("default integrator `s`", () => {
     it("should use default integrator", () => {
       const buffer = [new Float32Array(4)]
 
@@ -111,7 +111,7 @@ describe("render = mix(fn)", () => {
       expect(buffer[0]).to.be.buffer([0,-1,0,1])
 
       render({ buffer, sampleRate: 4, bpm: 120 }, { hz: 1 })
-      expect(buffer[0]).to.be.buffer([-1,1,-1,1])
+      expect(buffer[0]).to.be.buffer([0,-1,0,1])
     })
   })
 })
@@ -219,19 +219,18 @@ describe("workerMix part of context", () => {
   it("should be accessed from within context", async () => {
     const buffer = [new Shared32Array(4)]
     const context = { buffer }
-    let worker
+    let addRender
     const render = mix(mix => {
-      worker = mix.workerMix('/test/fixtures/adder.js')
-      worker.render(mix)
+      addRender = mix.workerMix('/test/fixtures/adder.js')
+      addRender(mix)
     }, ({ input }) => input / 2)
     render(context)
     expect(buffer[0]).to.be.buffer([0,0,0,0])
-    await new Promise(resolve => worker.onrender = resolve)
-    worker.onrender = null
+    await new Promise(resolve => addRender.onrender = resolve)
     expect(buffer[0]).to.be.buffer([1,1,1,1])
     render(context)
     expect(buffer[0]).to.be.buffer([.5,.5,.5,.5])
-    await new Promise(resolve => worker.onrender = resolve)
+    await new Promise(resolve => addRender.onrender = resolve)
     expect(buffer[0]).to.be.buffer([1.5,1.5,1.5,1.5])
   })
 })

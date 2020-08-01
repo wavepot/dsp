@@ -1,17 +1,31 @@
+import toFinite from '../lib/to-finite.js'
+import RingBuffer from '../lib/ring-buffer.js'
 import render from './render.js'
 import load, { setDynamicCache } from './load.js'
 export { setDynamicCache }
 
 export const mix = (...fns) => (data, params) => {
   let context = {}
+
+  const _buffer = data.buffer
+  data.buffer = _buffer.map(buf => new Shared32Array(buf.length))
+
   for (const fn of fns) {
-    context = Context(data).merge(context).merge({ n: data.n ?? 0 })
+    context = Context(data).merge(context).merge({
+      n: data.mode === 'loop'
+    ? data.n || 0
+    : 0
+    })
     render(fn, context, params)
   }
+
   Object.assign(data, context)
+
+  data.buffer.forEach((buf, i) => _buffer[i].set(buf))
+  data.buffer = _buffer
 }
 
-export const workerMix = (url) => load(url)
+export const workerMix = (url, context) => load(url, context)
 
 export class Shared32Array extends Float32Array {
   constructor (size) {
@@ -21,14 +35,19 @@ export class Shared32Array extends Float32Array {
 
 const proto = {
   valueOf: {
-    value () { return this.t }
+    value () { return this[this.ig] }
+  },
+  ig: {
+    value: 's',
+    enumerable: true,
+    writable: true
   },
   n: {
     value: 0,
     enumerable: true,
     writable: true
   },
-  t: {
+  k: {
     enumerable: false,
     get () { return (1 + this.n) / this.beatRate }
   },
@@ -39,6 +58,10 @@ const proto = {
   p: {
     enumerable: false,
     get () { return this.n % this.bufferSize }
+  },
+  x: {
+    enumerable: false,
+    get () { return this.input }
   },
   buffer: {
     value: null,
@@ -56,7 +79,7 @@ const proto = {
     writable: true
   },
   beatRate: {
-    value: 44100 / 60,
+    value: 44100,
     enumerable: true,
     writable: true
   },
@@ -68,8 +91,97 @@ const proto = {
   mix: {
     value: mix
   },
+  render: {
+    value (url, context = {}) {
+      const render = this.workerMix(url)
+      if (!context.buffer) {
+        if (render.buffer) {
+          context.buffer = render.buffer
+        } else {
+          context.buffer
+          = render.buffer
+          = this.buffer.map((buf, i) =>
+            new Shared32Array(buf.length))
+        }
+      }
+      render(context)
+      const sampler = (t, { size = context.buffer[0].length } = {}) => {
+        const value = [
+          context.buffer[0][t.n % size],
+          context.buffer?.[1][t.n % size] ?? 0
+        ]
+        value.valueOf = () => (value[0] + value[1]) / context.buffer.length
+        return value
+      }
+      sampler.buffer = context.buffer
+      return sampler
+    }
+  },
   workerMix: {
-    value: workerMix
+    value (url) {
+      let render
+
+      if (url[0] === '/') {
+        render = workerMix(url, this)
+      } else {
+        const path = this.url.split('/').slice(0, -1)
+        path.push(url)
+        render = workerMix(path.join('/'), this)
+      }
+
+      render.onerror = (error) => {
+        console.error(error)
+      }
+
+      render.onrender = () => {
+        const bus = new BroadcastChannel('dynamic-cache:' + this.cache.namespace)
+        bus.postMessage({ type: 'update', filename: this.url })
+      }
+
+      return render
+    }
+  },
+  Buffer: {
+    value: Shared32Array
+  },
+  RingBuffer: {
+    value (name, size) {
+      this.rings ??= {}
+      if (!this.rings[name] || this.rings[name].length !== size) {
+        this.rings[name] = new Shared32Array(size)
+      }
+      return new RingBuffer(this.rings[name])
+    }
+  },
+  rc: {
+    value (hz = 250) {
+      return 1.0 / (hz * 2 * Math.PI)
+    }
+  },
+  dt: {
+    enumerable: false,
+    get () {
+      return 1.0 / this.sampleRate
+    }
+  },
+  lowcut: {
+    value (hz = 250) {
+      const rc = this.rc(hz)
+      const dt = this.dt
+      return dt / (rc + dt)
+    }
+  },
+  highcut: {
+    value (hz = 250) {
+      const rc = this.rc(hz)
+      const dt = this.dt
+      return rc / (rc + dt)
+    }
+  },
+  clip: {
+    value (amt = .5) {
+      return this.input / (amt + Math.abs(this.input))
+    }
   },
   input: {
     enumerable: false,
@@ -102,7 +214,11 @@ export const Context = (data, params = {}) => {
 
   const mix = (...fns) => {
     for (const fn of fns) {
-      context = Context(data).merge(context).merge({ n: data.n ?? 0 })
+      context = Context(data).merge(context).merge({
+        n: data.mode === 'loop'
+      ? data.n || 0
+      : 0
+      })
       render(fn, context, params)
     }
     Object.assign(mix, context)

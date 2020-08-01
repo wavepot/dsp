@@ -50,7 +50,7 @@ export default class DynamicCache {
     const cache = await caches.open('dynamic-cache:' + this.namespace)
     await cache.put(req, res)
     const bus = new BroadcastChannel('dynamic-cache:' + this.namespace)
-    bus.postMessage({ type: 'update', filename })
+    bus.postMessage({ type: 'change', filename })
     return filename
   }
 }
