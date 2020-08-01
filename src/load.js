@@ -26,12 +26,12 @@ const methods = {
         // loader.scheduleRender = false
         // loader.context.n -= loader.context.bufferSize
       }
-      // methods.createWorker(loader)
-      loader.worker.postMessage({
-        call: 'setup',
-        context: { ...loader.context, n: loader.context.n - loader.context.bufferSize },
-        isChange: true
-      })
+      methods.createWorker(loader)
+      // loader.worker.postMessage({
+      //   call: 'setup',
+      //   context: { ...loader.context, n: loader.context.n - loader.context.bufferSize },
+      //   isChange: true
+      // })
       loader.render.onchange?.()
     }
   },
@@ -49,7 +49,7 @@ const methods = {
     worker.postMessage({ call: 'render', context: worker.loader.context })
   },
   onrender (worker, data) {
-    console.log('onrender', data.context.url)
+    console.log('onrender', data.context)
     const context = Object.assign(worker.loader.contextRef, data.context)
 
     const { loader } = worker
@@ -57,9 +57,10 @@ const methods = {
     loader.context = context.toJSON?.() ?? context
 
     // stop previous worker
-    // if (loader.worker && worker !== loader.worker) {
-    //   loader.worker.terminate()
-    // }
+    if (loader.worker && worker !== loader.worker) {
+      loader.worker.terminate()
+    }
+    loader.worker = worker
     loader.render.onrender?.()
   },
   onerror (worker, data) {
@@ -67,14 +68,13 @@ const methods = {
     if (worker.loader.render.onerror) {
       worker.loader.render.onerror(error)
     } else {
-      console.log('ererere')
       console.error(error)
       // throw error
     }
   },
   createWorker (loader) {
     const worker = new Worker(import.meta.url.replace('load.js', 'worker.js'), { type: 'module' })
-    loader.worker = worker
+    // loader.worker = worker
     worker.loader = loader
     worker.onerror = (error) => methods.onerror(worker, { error })
     worker.onmessage = ({ data }) => methods[data.call](worker, data)

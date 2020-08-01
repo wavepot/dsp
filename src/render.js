@@ -1,6 +1,6 @@
 import toFinite from '../lib/to-finite.js'
 
-export default (fn, context, params) => {
+export default async (fn, context, params) => {
   const { buffer } = context
   const numOfChannels = buffer.length
 
@@ -8,8 +8,8 @@ export default (fn, context, params) => {
     throw new RangeError('unsupported number of channels [' + numOfChannels + ']')
   }
 
-  const result = fn(context, params)
-
+  const result = await fn(context, params)
+console.log('result of', fn.toString(), result)
   if (typeof result === 'object' && '0' in result && typeof result[0] === 'number') {
     if (numOfChannels === 1) {
       buffer[0][0] =

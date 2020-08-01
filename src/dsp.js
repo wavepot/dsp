@@ -4,7 +4,9 @@ import render from './render.js'
 import load, { setDynamicCache } from './load.js'
 export { setDynamicCache }
 
-export const mix = (...fns) => (data, params) => {
+const fnMap = new Map
+
+export const mix = (...fns) => async (data, params) => {
   let context = {}
 
   const _buffer = data.buffer
@@ -16,7 +18,14 @@ export const mix = (...fns) => (data, params) => {
     ? data.n || 0
     : 0
     })
-    render(fn, context, params)
+    if (!fnMap.has(fn)) {
+      if (fn.constructor.name === 'AsyncFunction') {
+        fnMap.set(fn, await fn(context, params))
+      } else {
+        fnMap.set(fn, fn)
+      }
+    }
+    await render(fnMap.get(fn), context, params)
   }
 
   Object.assign(data, context)
@@ -50,6 +59,10 @@ const proto = {
   k: {
     enumerable: false,
     get () { return (1 + this.n) / this.beatRate }
+  },
+  k1: {
+    enumerable: false,
+    get () { return this.k % 1 }
   },
   s: {
     enumerable: false,
@@ -212,14 +225,21 @@ const proto = {
 export const Context = (data, params = {}) => {
   let context = data
 
-  const mix = (...fns) => {
+  const mix = async (...fns) => {
     for (const fn of fns) {
       context = Context(data).merge(context).merge({
         n: data.mode === 'loop'
       ? data.n || 0
       : 0
       })
-      render(fn, context, params)
+      if (!fnMap.has(fn)) {
+        if (fn.constructor.name === 'AsyncFunction') {
+          fnMap.set(fn, await fn(context, params))
+        } else {
+          fnMap.set(fn, fn)
+        }
+      }
+      await render(fnMap.get(fn), context, params)
     }
     Object.assign(mix, context)
   }
