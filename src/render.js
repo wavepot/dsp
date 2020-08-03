@@ -22,14 +22,12 @@ export default async (fn, context) => {
       buffer[0][0] = assertFinite(result[0])
       buffer[1][0] = assertFinite(result[1])
     }
-    context.n++
-    context.p++
+    context.tick()
     renderStereo(fn, context)
     return context
   } else if (typeof result === 'number') {
-    context.n++
-    context.p++
     buffer[0][0] = assertFinite(result) / numOfChannels
+    context.tick()
     renderMono(fn, context)
     if (numOfChannels === 2) {
       buffer[1].set(buffer[0])
@@ -45,13 +43,14 @@ const renderMono = (fn, context) => {
   const { length } = buffer[0]
   const numOfChannels = buffer.length
 
-  for (let i = 1;
-    i < length; // render one length
-    i++,
-    context.n++, // increment global sample position
-    context.p++  // increment local sample position
-  ) {
-    buffer[0][i] = assertFinite(fn(context)) / numOfChannels
+  if (numOfChannels === 1) {
+    for (let i = 1; i < length; i++, context.tick()) {
+      buffer[0][i] = assertFinite(fn(context))
+    }
+  } else {
+    for (let i = 1; i < length; i++, context.tick()) {
+      buffer[0][i] = assertFinite(fn(context)) / 2
+    }
   }
 }
 
@@ -60,14 +59,10 @@ const renderStereo = (fn, context) => {
   const { length } = buffer[0]
   const numOfChannels = buffer.length
 
+  let sample = []
+
   if (numOfChannels === 1) {
-    for (let i = 1,
-      sample = [];
-      i < length; // render one length
-      i++,
-      context.n++, // increment global sample position
-      context.p++  // increment local sample position
-    ) {
+    for (let i = 1; i < length; i++, context.tick()) {
       sample = fn(context)
       buffer[0][i] = (
         assertFinite(sample[0])
@@ -75,13 +70,7 @@ const renderStereo = (fn, context) => {
       ) / 2
     }
   } else {
-    for (let i = 1,
-      sample = [];
-      i < length; // render one length
-      i++,
-      context.n++, // increment global sample position
-      context.p++  // increment local sample position
-    ) {
+    for (let i = 1; i < length; i++, context.tick()) {
       sample = fn(context)
       buffer[0][i] = assertFinite(sample[0])
       buffer[1][i] = assertFinite(sample[1])

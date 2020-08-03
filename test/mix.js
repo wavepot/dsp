@@ -87,7 +87,7 @@ describe("mix(fn)", () => {
     expect(context.buffer[0]).to.be.buffer([10,11,12,13])
   })
 
-  it("mix waterfall", async () => {
+  it("mix waterfall mono to mono", async () => {
     const context = { buffer: [new Float32Array(4)] }
     const mix = Mix(context)
     const fn = async () => [
@@ -129,5 +129,68 @@ describe("mix(fn)", () => {
     expect(context.buffer[0]).to.be.buffer([6,7,8,9])
     await mix(fn, { n: 1 })
     expect(context.buffer[0]).to.be.buffer([7,8,9,10])
+  })
+
+  it("mix waterfall mono to stereo", async () => {
+    const context = { buffer: [new Float32Array(4), new Float32Array(4)] }
+    const mix = Mix(context)
+    const fn = async () => [
+      c => c.n,
+      c => c.input + 1,
+      c => c.input + 2
+    ]
+    await mix(fn)
+    expect(context.buffer[0]).to.be.buffer([1.5,2,2.5,3])
+    expect(context.buffer[1]).to.be.buffer([1.5,2,2.5,3])
+  })
+
+  it("mix waterfall stereo to stereo", async () => {
+    const context = { buffer: [new Float32Array(4), new Float32Array(4)] }
+    const mix = Mix(context)
+    const fn = async () => [
+      c => [c.n, c.n],
+      c => [c.input[0] + 1, c.input[1] + 1],
+      c => [c.input[0] + 2, c.input[1] + 2],
+    ]
+    await mix(fn)
+    expect(context.buffer[0]).to.be.buffer([3,4,5,6])
+    expect(context.buffer[1]).to.be.buffer([3,4,5,6])
+  })
+
+  it("mix waterfall stereo to mono", async () => {
+    const context = { buffer: [new Float32Array(4)] }
+    const mix = Mix(context)
+    const fn = async () => [
+      c => [c.n, c.n],
+      c => [c.input[0] + 1, c.input[1] + 1],
+      c => [c.input[0] + 2, c.input[1] + 2],
+    ]
+    await mix(fn)
+    expect(context.buffer[0]).to.be.buffer([3,4,5,6])
+  })
+
+  it("mix waterfall mixed to stereo", async () => {
+    const context = { buffer: [new Float32Array(4), new Float32Array(4)] }
+    const mix = Mix(context)
+    const fn = async () => [
+      c => c.n,
+      c => [c.input[0] + 1, c.input[1] + 1],
+      c => c.input + 2
+    ]
+    await mix(fn)
+    expect(context.buffer[0]).to.be.buffer([2,2.5,3,3.5])
+    expect(context.buffer[1]).to.be.buffer([2,2.5,3,3.5])
+  })
+
+  it("mix waterfall mixed to mono", async () => {
+    const context = { buffer: [new Float32Array(4)] }
+    const mix = Mix(context)
+    const fn = async () => [
+      c => c.n,
+      c => [c.input[0] + 1, c.input[1] + 1],
+      c => c.input + 2
+    ]
+    await mix(fn)
+    expect(context.buffer[0]).to.be.buffer([3,4,5,6])
   })
 })
