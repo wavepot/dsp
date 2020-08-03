@@ -37,4 +37,10 @@ describe("new RingBuffer(buffer)", () => {
     expect(buffer).to.be.buffer([4,2,3])
     expect(ring).to.be.buffer([2,3,4])
   })
+
+  it("should fail", () => {
+    // const bus = new BroadcastChannel('bus')
+    postMessage({ ring })
+    // postMessage({ ring: ring.toJSON() })
+  })
 })

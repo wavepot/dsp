@@ -27,11 +27,13 @@ export const mix = (...fns) => async (data, params) => {
     }
     await render(fnMap.get(fn), context, params)
   }
-
+console.log('context is', context.n)
   Object.assign(data, context)
 
   data.buffer.forEach((buf, i) => _buffer[i].set(buf))
   data.buffer = _buffer
+
+  return context.mix
 }
 
 export const workerMix = (url, context) => load(url, context)
@@ -242,6 +244,7 @@ export const Context = (data, params = {}) => {
       await render(fnMap.get(fn), context, params)
     }
     Object.assign(mix, context)
+    return mix
   }
 
   Object.defineProperties(mix, proto)
