@@ -1,5 +1,13 @@
 import './setup.js'
 import Mix from '../src/mix.js'
+import DynamicCache from '../dynamic-cache.js'
+
+let cache
+
+before(async () => {
+  await DynamicCache.install()
+  cache = new DynamicCache('test', { 'Content-Type': 'application/javascript' })
+})
 
 describe("mix = Mix(context)", () => {
   it("returns a mix function", () => {
@@ -41,6 +49,42 @@ describe("mix(fn)", () => {
     const fn = async () => ({ n }) => n
     await mix(fn, { n: 2 })
     expect(context.buffer[0]).to.be.buffer([2,3,4,5])
+  })
+
+  it("async fn accept additional arbitrary data", async () => {
+    const context = { buffer: [new Float32Array(4)] }
+    const mix = Mix(context)
+    const fn = async () => ({ n, foo }) => n + foo
+    await mix(fn, { n: 2 }, { foo: 10 })
+    expect(context.buffer[0]).to.be.buffer([12,13,14,15])
+  })
+
+  it("changes to data bubble up", async () => {
+    const context = { buffer: [new Float32Array(4)] }
+    const mix = Mix(context)
+    const fn = async () => ({ n }, data) => {
+      data.foo++
+      return n
+    }
+    const data = { foo: 10 }
+    await mix(fn, { n: 2 }, data)
+    expect(context.buffer[0]).to.be.buffer([2,3,4,5])
+    expect(data.foo).to.equal(14)
+    expect(fn.foo).to.equal(14)
+  })
+
+  it("added data bubble up", async () => {
+    const context = { buffer: [new Float32Array(4)] }
+    const mix = Mix(context)
+    const fn = async () => ({ n }, data) => {
+      data.foo = n
+      return n
+    }
+    const data = {}
+    await mix(fn, { n: 2 }, data)
+    expect(context.buffer[0]).to.be.buffer([2,3,4,5])
+    expect(data.foo).to.equal(5)
+    expect(fn.foo).to.equal(5)
   })
 
   it("async closure fn accept additional context data", async () => {
@@ -192,5 +236,17 @@ describe("mix(fn)", () => {
     ]
     await mix(fn)
     expect(context.buffer[0]).to.be.buffer([3,4,5,6])
+  })
+})
+
+describe("mix('fn.js')", () => {
+  it("render fn.js in a worker thread", async () => {
+    const code = `export default ({ n }) => n`
+    const filename = await cache.put(code)
+    const context = { buffer: [new Float32Array(4)] }
+    const mix = Mix(context)
+    await mix(filename)
+    await new Promise(resolve => mix.onrender = resolve)
+    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
   })
 })

@@ -1,4 +1,4 @@
-export default (top, execute, merge = Object.assign) => {
+export default (top, execute, merge = Object.assign, preprocess = () => x => x) => {
   const fnMap = new Map
   const proto = Object.getOwnPropertyDescriptors(Object.getPrototypeOf(top))
   const desc = Object.getOwnPropertyDescriptors(top)
@@ -9,7 +9,10 @@ export default (top, execute, merge = Object.assign) => {
     const fn = async (...args) => {
       merge(fn, ...args)
 
+      const pre = preprocess(fn)
+
       const fns = args
+        .map(pre)
         .filter(arg => typeof arg === 'function')
         .map(_fn => [_fn, merge(createHyperFn(_fn), fn, ...args)])
 
@@ -26,10 +29,10 @@ export default (top, execute, merge = Object.assign) => {
             fnMap.set(_fn, _fn)
           }
         }
-        merge(fn, hyperFn, await execute(fnMap.get(_fn), hyperFn))
+        merge(fn, hyperFn, (await execute(fnMap.get(_fn), hyperFn)) ?? {})
       }
 
-      merge(context.parent, context, fn)
+      merge(context.parent, context, ...args, fn)
 
       return fn
     }

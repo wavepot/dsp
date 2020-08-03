@@ -10,7 +10,7 @@ export default async (fn, context) => {
     throw new RangeError('unsupported number of channels [' + numOfChannels + ']')
   }
 
-  const result = await fn(context)
+  const result = await fn(context, context, context)
 
   if (typeof result === 'object' && '0' in result && typeof result[0] === 'number') {
     if (numOfChannels === 1) {
@@ -45,11 +45,11 @@ const renderMono = (fn, context) => {
 
   if (numOfChannels === 1) {
     for (let i = 1; i < length; i++, context.tick()) {
-      buffer[0][i] = assertFinite(fn(context))
+      buffer[0][i] = assertFinite(fn(context, context, context))
     }
   } else {
     for (let i = 1; i < length; i++, context.tick()) {
-      buffer[0][i] = assertFinite(fn(context)) / 2
+      buffer[0][i] = assertFinite(fn(context, context, context)) / 2
     }
   }
 }
@@ -63,7 +63,7 @@ const renderStereo = (fn, context) => {
 
   if (numOfChannels === 1) {
     for (let i = 1; i < length; i++, context.tick()) {
-      sample = fn(context)
+      sample = fn(context, context, context)
       buffer[0][i] = (
         assertFinite(sample[0])
       + assertFinite(sample[1])
@@ -71,7 +71,7 @@ const renderStereo = (fn, context) => {
     }
   } else {
     for (let i = 1; i < length; i++, context.tick()) {
-      sample = fn(context)
+      sample = fn(context, context, context)
       buffer[0][i] = assertFinite(sample[0])
       buffer[1][i] = assertFinite(sample[1])
     }

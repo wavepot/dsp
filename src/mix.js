@@ -3,7 +3,12 @@ import render from './render.js'
 import Context from './context.js'
 
 export default context => {
-  return Hyper(new Context(context), render, merge)
+  return Hyper(
+    new Context(context),
+    render,
+    merge,
+    preprocess
+  )
 }
 
 const merge = (...args) => {
@@ -13,4 +18,11 @@ const merge = (...args) => {
     }
   }
   return args[0]
+}
+
+const preprocess = context => value => {
+  if (typeof value === 'string') {
+    return Loader(value, context)
+  }
+  return value
 }

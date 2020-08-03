@@ -11,6 +11,7 @@ export default class Context {
           enumerable: false,
           writable: true
         }))
+
     Object.assign(this, data)
   }
 
