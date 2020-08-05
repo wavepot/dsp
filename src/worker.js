@@ -5,7 +5,7 @@ console.log('worker started')
 
 const worker = {
   async setup ({ context }) {
-    console.log('worker: `setup()`', context)
+    // console.log('worker: `setup()`', context)
 
     if (this.hasSetup) {
       console.error('worker: `setup()` called twice.', this.url)
@@ -28,7 +28,7 @@ const worker = {
     this.render({ context })
   },
   async render ({ context }) {
-    console.log('worker: `render()`', context)
+    // console.log('worker: `render()`', context)
 
     if (!this.fn) {
       console.error('worker: `render()` called but function not ready:', this.url)
@@ -43,7 +43,23 @@ const worker = {
     delete context.buffer
     context.buffer = this.buffer
 
-    this.mix = this.mix ?? Mix(context)
+    if (!this.mix) {
+      const bus = new BroadcastChannel('dynamic-cache:article')
+      bus.onmessage = async ({ data }) => {
+        if (data.type === 'change') {
+          const url = data.filename
+          if (this.mix.g?.loaders?.[url]) {
+            console.log('CHANGED', url)
+            delete this.mix.g.loaders[url]
+            this.render({ context })
+          }
+          // methods.onchange(data.filename)
+        } //else if (data.type === 'update') {
+          // methods.onupdate(data.filename)
+        //}
+      }
+      this.mix = Mix(context)
+    }
     try {
       await this.mix(this.fn, context)
       // NOTE: there is going to be a rare(?) case where
@@ -55,7 +71,7 @@ const worker = {
       // to happen. (?) Make sure we don't delay the copy
       // on the other side because that will glitch for sure.
       this.buffer.forEach((b, i) => this.output[i].set(b))
-      console.log('worker: written buffer out', this.url)
+      // console.log('worker: written buffer out', this.url)
       postMessage({ call: 'onsuccess' })
     } catch (error) {
       return postMessage({ call: 'onerror', error })

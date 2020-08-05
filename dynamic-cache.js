@@ -49,6 +49,7 @@ export default class DynamicCache {
     const res = new Response(content, { status: 200, headers })
     const cache = await caches.open('dynamic-cache:' + this.namespace)
     await cache.put(req, res)
+    this.onchange?.(filename)
     const bus = new BroadcastChannel('dynamic-cache:' + this.namespace)
     bus.postMessage({ type: 'change', filename })
     return filename

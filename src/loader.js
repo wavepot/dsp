@@ -5,6 +5,13 @@ export class Shared32Array extends Float32Array {
 }
 
 export default (url, c) => {
+  if (url.slice(0,2) === './' && c.url) {
+    const parts = c.url.split('/')
+    parts.pop()
+    parts.push(url.slice(2))
+    url = parts.join('/')
+  }
+
   const g = c.g
   g.loaders = g.loaders ?? {}
   g.buffers = g.buffers ?? {}
@@ -26,6 +33,7 @@ export default (url, c) => {
     console.log('loader: success')
     worker.state = 'render'
     g.buffers[url] = buffer
+    g.onload?.()
   }
   loader.onerror = ({ error }) => {
     console.error(error)

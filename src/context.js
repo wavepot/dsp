@@ -1,8 +1,8 @@
 export default class Context {
   constructor (data) {
     this.bpm = 60
-    this.sampleRate = 44100
     this.beatRate = 44100
+    this.sampleRate = 44100
 
     Object.entries(this.constructor.nonEnumerableProps())
       .forEach(([key, value]) => Object
@@ -44,14 +44,14 @@ export default class Context {
   // local time = since begin of this buffer
 
   // global time in seconds: s=1=1 sec
-  get s () { return this.n % this.sampleRate }
+  get s () { return (1+this.n) / this.sampleRate }
   // global time beat synced: b=1=1 beat
-  get b () { return this.n % this.beatRate }
+  get b () { return (1+this.n) / this.beatRate }
 
   // local time in seconds (since the start of this buffer)
-  get t () { return this.p % this.sampleRate }
+  get t () { return (1+this.p) / this.sampleRate % this.sampleRate }
   // local time beat synced: k=1=1 beat (since the start of this buffer)
-  get k () { return this.p % this.beatRate }
+  get k () { return (1+this.p) / this.beatRate % this.beatRate }
 
   // input=L+R of current buffer frame
   // input[0]=L
