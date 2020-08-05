@@ -4,7 +4,7 @@ export default (top, execute, merge = Object.assign, preprocess = () => x => x) 
   const desc = Object.getOwnPropertyDescriptors(top)
 
   const createHyperFn = parent => {
-    const context = { ...parent, parent }
+    const context = { ...parent, parent, g: top }
 
     const fn = async (...args) => {
       merge(fn, ...args)
@@ -32,7 +32,7 @@ export default (top, execute, merge = Object.assign, preprocess = () => x => x) 
         merge(fn, hyperFn, (await execute(fnMap.get(_fn), hyperFn)) ?? {})
       }
 
-      merge(context.parent, context, ...args, fn)
+      merge(top, context.parent, context, ...args, fn)
 
       return fn
     }

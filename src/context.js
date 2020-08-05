@@ -20,6 +20,19 @@ export default class Context {
     this.p++
   }
 
+  toJSON () {
+    const json = {}
+    for (const key in this) {
+      if (typeof this[key] !== 'function') {
+        json[key] = this[key]
+      }
+    }
+    delete json.g
+    delete json.worker
+    delete json.parent
+    return json
+  }
+
   static nonEnumerableProps () {
     return {
       n: 0, // global frame position

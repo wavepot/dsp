@@ -1,33 +1,47 @@
-export default (filename, context) => {
-  context.loaders = context.loaders ?? {}
-
-  let loader = context.loaders[filename]
-  if (loader) return loader.sampler
-
-  loader = {}
-  loader.worker = WorkerMix(filename, context)
-  loader.sampler = Sampler(loader.worker.buffer)
-
-  return loader.sampler
+export class Shared32Array extends Float32Array {
+  constructor (length) {
+    super(new SharedArrayBuffer(length * Float32Array.BYTES_PER_ELEMENT))
+  }
 }
 
-const Sampler = buffer => {
-  const fn = (t, { size = buffer[0].length }) => {
-    const value = [
-      buffer[0][t.n % size],
-      buffer?.[1][t.n % size] ?? 0
-    ]
-    value.valueOf = () => (value[0] + value[1]) / buffer.length
-    return value
+export default (url, c) => {
+  const g = c.g
+  g.loaders = g.loaders ?? {}
+  g.buffers = g.buffers ?? {}
+
+  let loader = g.loaders[url]
+  if (loader) return loader
+
+  const buffer = c.buffer.map(b => new Shared32Array(b.length))
+  // buffer.THECOOLBUFFER = true
+
+  g.loaders[url] = loader = c => {
+    if (worker.state === 'terminate') return
+    c.url = url
+    c.buffer = buffer
+    worker.postMessage({ call: worker.state, context: c.toJSON() })
+    c.buffer = g.buffers[url] ?? buffer
+  }
+  loader.onsuccess = () => {
+    console.log('loader: success')
+    worker.state = 'render'
+    g.buffers[url] = buffer
+  }
+  loader.onerror = ({ error }) => {
+    console.error(error)
+    console.log('loader: worker terminate')
+    worker.state = 'terminate'
+    worker.terminate()
+    delete g.loaders[url]
   }
 
-  fn.buffer = buffer
+  const worker = new Worker(
+    import.meta.url.replace('loader.js', 'worker.js'),
+    { type: 'module' }
+  )
+  worker.state = 'setup'
+  worker.onerror = error => loader.onerror({ error })
+  worker.onmessage = ({ data }) => loader[data.call](data)
 
-  return fn
-}
-
-const WorkerMix = (filename, c) => {
-  c(context => {
-    context.buffer
-  })
+  return loader
 }
