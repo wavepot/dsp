@@ -3,6 +3,7 @@ import randomId from '../lib/random-id.js'
 export default class Context {
   constructor (data) {
     this.id = randomId()
+    this.n = 0
     this.bpm = 60
     this.beatRate = 44100
     this.sampleRate = 44100
@@ -38,7 +39,7 @@ export default class Context {
 
   static nonEnumerableProps () {
     return {
-      n: 0, // global frame position
+      // n: 0, // global frame position
       p: 0, // local frame position
     }
   }

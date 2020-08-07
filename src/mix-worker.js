@@ -27,7 +27,6 @@ class MixWorker {
   }
 
   setBuffers ({ buffers }) {
-    console.log('RECEIVED MAIN BUFFERS', buffers)
     Object.assign(self.buffers, buffers)
   }
 
@@ -45,7 +44,6 @@ class MixWorker {
   }
 
   onready () {
-    console.log('READY', this.url)
     workers.set(this.url, this)
     this.state = 'ready'
     this.sendQueue.forEach(args => this.postMessage(...args))

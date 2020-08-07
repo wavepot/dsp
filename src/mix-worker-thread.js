@@ -9,7 +9,6 @@ class MixWorkerThread {
 
   setBuffers ({ buffers }) {
     Object.assign(self.buffers, buffers)
-    console.log('received buffers', self.buffers)
   }
 
   async setup ({ url }) {

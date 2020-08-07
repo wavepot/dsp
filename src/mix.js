@@ -11,22 +11,13 @@ export class Shared32Array extends Float32Array {
 }
 
 export default context => {
-  return Hyper(
-    new Context(context),
-    render,
-    merge,
-    preprocess
-  )
-}
-
-const merge = (...args) => {
-  args = args.filter(arg => typeof arg !== 'string')
-  for (let i = args.length - 1; i >= 1; i--) {
-    for (let j = i-1; j >= 0; j--) {
-      Object.assign(args[j], args[i])
-    }
-  }
-  return args[0]
+  return Hyper({
+    context: new Context(context),
+    execute: render,
+    preprocess,
+    mergeSide,
+    mergeUp,
+  })
 }
 
 const loaders = {}
@@ -59,25 +50,51 @@ const preprocess = context => value => {
 
           const mainBuffer = c.buffer
           c.buffer = self.buffers[id]
+
           getWorker(url)
             .postMessage({ call: 'render', context: c.toJSON() })
-          c.buffer = mainBuffer
         }
 
         return c => {
-          const mainBuffer = c.buffer
           c.buffer = self.buffers[id]
 
           if (!c.once) {
             getWorker(url)
               .postMessage({ call: 'render', context: c.toJSON() })
           }
-
-          c.buffer = mixBuffers(mainBuffer, c.buffer)
         }
       })
 
     return loader
   }
   return value
+}
+
+const mergeUp = (...a) => {
+  let ub, db
+  for (let u = a.length-1; u >= 1; u--) {
+    for (let d = u-1; d >= 0; d--) {
+      ub = a[u].buffer
+      db = a[d].buffer
+      if (ub !== db) {
+        mixBuffers(db, ub)
+      }
+    }
+  }
+  return a[0]
+}
+
+const mergeSide = (...a) => {
+  for (let r = a.length-1; r >= 1; r--) {
+    let l = r-1
+    for (let key in a[r]) {
+      // sibling iteration shouldn't copy `n`
+      // i.e it should begin at the parent's
+      //     position
+      if (key === 'n') continue
+
+      a[l][key] = a[r][key]
+    }
+  }
+  return a[0]
 }
