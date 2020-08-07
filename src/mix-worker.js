@@ -4,10 +4,12 @@ export const workers = new Map
 
 self.buffers = {}
 
+const checksums = new Set
+
 const WORKER_URL = import.meta.url.replace('.js', '-thread.js')
 
 class MixWorker {
-  constructor (url) {
+  constructor (url, context) {
     this.url = url
     this.state = 'starting'
     this.listeners = []
@@ -18,7 +20,7 @@ class MixWorker {
       this[data?.call]?.(data)
       this.listeners.forEach(fn => fn({ data }))
     }
-    this.worker.postMessage({ call: 'setup', url })
+    this.worker.postMessage({ call: 'setup', url, context: (context.toJSON?.() ?? context) })
     this.postMessage({ call: 'setBuffers', buffers: self.buffers })
   }
 
@@ -32,14 +34,21 @@ class MixWorker {
 
   postMessage (...args) {
     if (this.state === 'ready') {
+      if (args[0].context) {
+        const checksum = args[0].context.checksum
+        if (checksums.has(checksum)) {
+          console.log('already rendered, ignore postMessage')
+          return
+        }
+      }
       this.worker.postMessage(...args)
     } else if (this.state === 'starting') {
       this.sendQueue.push(args)
     }
   }
 
-  proxyMessage ({ url, args }) {
-    const worker = getWorker(url)
+  proxyMessage ({ url, context, args }) {
+    const worker = getWorker(url, context)
     worker.postMessage(...args)
   }
 
@@ -48,6 +57,11 @@ class MixWorker {
     this.state = 'ready'
     this.sendQueue.forEach(args => this.postMessage(...args))
     this.sendQueue = []
+  }
+
+  onrender ({ checksum }) {
+    console.log('context rendered', checksum)
+    checksums.add(checksum)
   }
 
   onerror ({ error }) {
@@ -65,27 +79,29 @@ class MixWorker {
 }
 
 class MixWorkerProxy {
-  constructor (url) {
+  constructor (url, context) {
     this.url = url
+    this.context = context
   }
 
   postMessage (...args) {
     self.postMessage({
       call: 'proxyMessage',
       url: this.url,
+      context: (this.context.toJSON?.() ?? this.context),
       args
     })
   }
 }
 
-const getWorker = url => {
+const getWorker = (url, context) => {
   if (url[0] === '/') url = location.origin + url
 
-  if (!isMain) return new MixWorkerProxy(url)
+  if (!isMain) return new MixWorkerProxy(url, context)
 
   if (starting.has(url)) return starting.get(url)
 
-  const worker = new MixWorker(url)
+  const worker = new MixWorker(url, context)
   starting.set(url, worker)
 
   if (workers.has(url)) return workers.get(url)

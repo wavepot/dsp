@@ -26,6 +26,7 @@ export default async (fn, context) => {
     renderStereo(fn, context)
     return context
   } else if (typeof result === 'number') {
+    console.log('RESULT?', result, fn.toString(), context.toJSON())
     buffer[0][0] = assertFinite(result) / numOfChannels
     context.tick()
     renderMono(fn, context)

@@ -10,14 +10,14 @@ before(async () => {
   cache = window.__cache = new DynamicCache('test', { 'Content-Type': 'application/javascript' })
 })
 
-describe("mix = Mix(context)", () => {
+xdescribe("mix = Mix(context)", () => {
   it("returns a mix function", () => {
     const mix = Mix({})
     expect(mix).to.be.a('function')
   })
 })
 
-describe("mix(fn)", () => {
+xdescribe("mix(fn)", () => {
   it("renders fn into buffer", async () => {
     const context = { buffer: [new Float32Array(4)] }
     const mix = Mix(context)
@@ -58,6 +58,29 @@ describe("mix(fn)", () => {
     const fn = async () => ({ n, foo }) => n + foo
     await mix(fn, { n: 2 }, { foo: 10 })
     expect(context.buffer[0]).to.be.buffer([12,13,14,15])
+  })
+
+  it("added closure data should not bubble up", async () => {
+    const context = { buffer: [new Float32Array(4)] }
+    const mix = Mix(context)
+    const fn = c => c(
+      c => c(
+        c => c.n,
+        { foo: 'bar' },
+      )
+    )
+    await mix(fn)
+    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+    expect(context.foo).to.equal(undefined)
+    expect(fn.foo).to.equal(undefined)
+    await mix(fn)
+    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+    expect(context.foo).to.equal(undefined)
+    expect(fn.foo).to.equal(undefined)
+    await mix(fn)
+    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+    expect(context.foo).to.equal(undefined)
+    expect(fn.foo).to.equal(undefined)
   })
 
   // it("changes to data bubble up", async () => {
@@ -266,73 +289,135 @@ describe("mix(fn)", () => {
 describe("mix('fn.js')", function () {
   this.timeout(5000)
 
-  it("render fn.js in a worker thread, sending buffer down", async () => {
-    const context = { buffer: [new Float32Array(4)] }
-    const code = `export default ({ n }) => n`
-    const url = await cache.put('ncount.js', code)
+  // it("render fn.js in a worker thread, sending buffer down", async () => {
+  //   const context = { buffer: [new Float32Array(4)] }
+  //   const code = `export default ({ n }) => n`
+  //   const url = await cache.put('ncount.js', code)
+  //   starting.delete(url)
+  //   workers.delete(url)
+  //   const mix = Mix(context)
+  //   const fn = url
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,0,0,0])
+  //   await new Promise(resolve => setTimeout(resolve, 300))
+
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+  //   await new Promise(resolve => setTimeout(resolve, 300))
+
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,2,4,6])
+  // })
+
+  // it("render fn.js in a worker thread, alternate", async () => {
+  //   const context = { buffer: [new Float32Array(4)] }
+  //   const code = `export default ({ n }) => n`
+  //   const url = await cache.put('ncount.js', code)
+  //   starting.delete(url)
+  //   workers.delete(url)
+  //   const mix = Mix(context)
+
+  //   let i = 0
+  //   const fn = async c => [c => i, url]
+  //   await mix(fn, { n: 0 })
+  //   expect(context.buffer[0]).to.be.buffer([0,0,0,0])
+  //   await new Promise(resolve => setTimeout(resolve, 300))
+  //   await mix(fn, { n: 0 })
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+
+  //   i++
+  //   await mix(fn, { n: 0 })
+  //   await new Promise(resolve => setTimeout(resolve, 300))
+  //   expect(context.buffer[0]).to.be.buffer([1,2,3,4])
+  // })
+
+  // it("invalidate fn.js", async () => {
+  //   const context = { buffer: [new Float32Array(4)] }
+  //   const code = `export default ({ n }) => n`
+  //   const url = await cache.put('ncount.js', code)
+  //   starting.delete(url)
+  //   workers.delete(url)
+  //   const mix = Mix(context)
+  //   const fn = url
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,0,0,0])
+  //   await new Promise(resolve => setTimeout(resolve, 300))
+
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+  //   await new Promise(resolve => setTimeout(resolve, 300))
+
+  //   await cache.put('ncount.js', `export default () => 5`)
+  //   starting.delete(url)
+  //   workers.delete(url)
+
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,2,4,6])
+  //   await new Promise(resolve => setTimeout(resolve, 300))
+
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([5,7,9,11])
+  // })
+
+
+  it("render multiple in threads", async () => {
+    const context = { y: 0, x: 10, buffer: [new Float32Array(4)] }
+
+    const a_code = `export default async c => [
+  c => c('./b.js')
+]`
+    const b_code = `export default c => c.x + c.n`
+    const c_code = `export default c => c.y`
+
+    let url
+    url = await cache.put('a.js', a_code)
+    const a_url = url
     starting.delete(url)
     workers.delete(url)
+
+    url = await cache.put('b.js', b_code)
+    const b_url = url
+    starting.delete(url)
+    workers.delete(url)
+
+    url = await cache.put('c.js', c_code)
+    const c_url = url
+    starting.delete(url)
+    workers.delete(url)
+
     const mix = Mix(context)
-    const fn = url
-    await mix(fn)
+    const fn = async c => [
+      c => { c.buffer[0].fill(0) },
+      a_url
+    ]
+    await mix(fn, { n: 0 })
+
     expect(context.buffer[0]).to.be.buffer([0,0,0,0])
     await new Promise(resolve => setTimeout(resolve, 300))
 
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+    await mix(fn, { n: 4 })
     await new Promise(resolve => setTimeout(resolve, 300))
 
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,2,4,6])
-  })
-
-  it("render fn.js in a worker thread, alternate", async () => {
-    const context = { buffer: [new Float32Array(4)] }
-    const code = `export default ({ n }) => n`
-    const url = await cache.put('ncount.js', code)
-    starting.delete(url)
-    workers.delete(url)
-    const mix = Mix(context)
-
-    let i = 0
-    const fn = async c => [c => i, url]
-    await mix(fn, { n: 0 })
-    expect(context.buffer[0]).to.be.buffer([0,0,0,0])
-    await new Promise(resolve => setTimeout(resolve, 300))
-    await mix(fn, { n: 0 })
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-
-    i++
-    await mix(fn, { n: 0 })
-    await new Promise(resolve => setTimeout(resolve, 300))
-    expect(context.buffer[0]).to.be.buffer([1,2,3,4])
-  })
-
-  it("invalidate fn.js", async () => {
-    const context = { buffer: [new Float32Array(4)] }
-    const code = `export default ({ n }) => n`
-    const url = await cache.put('ncount.js', code)
-    starting.delete(url)
-    workers.delete(url)
-    const mix = Mix(context)
-    const fn = url
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,0,0,0])
+    await mix(fn, { n: 8 })
     await new Promise(resolve => setTimeout(resolve, 300))
 
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-    await new Promise(resolve => setTimeout(resolve, 300))
+    // await mix(fn, { n: 12 })
+    // await new Promise(resolve => setTimeout(resolve, 300))
 
-    await cache.put('ncount.js', `export default () => 5`)
-    starting.delete(url)
-    workers.delete(url)
+    expect(context.buffer[0]).to.be.buffer([10,11,12,13])
 
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,2,4,6])
-    await new Promise(resolve => setTimeout(resolve, 300))
+    // url = await cache.put('b.js', `export default c => c.x + c.n + 2`)
+    // // const b_url = url
+    // starting.delete(url)
+    // workers.delete(url)
 
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([5,7,9,11])
+    // await mix(fn)
+    // await new Promise(resolve => setTimeout(resolve, 300))
+
+    // await mix(fn)
+    // await new Promise(resolve => setTimeout(resolve, 300))
+
+    // await mix(fn)
+    // expect(context.buffer[0]).to.be.buffer([12,13,14,15])
   })
 })

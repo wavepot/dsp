@@ -1,4 +1,3 @@
-
 // const merger = (...args) => {
 //   args = args.filter(arg => typeof arg !== 'string')
 //   for (let i = args.length - 1; i >= 1; i--) {
@@ -25,17 +24,19 @@ export default ({
     const context = { ...parent, parent }
 
     const fn = async (...args) => {
-
       const pre = preprocess(fn)
+      args = args.map(pre)
 
       const fns = args
-        .map(pre)
         .filter(arg => typeof arg === 'function')
         .map(_fn => [
           _fn,
           // mergeSide(
-          mergeDown(createHyperFn(_fn), fn, ...args),
+          mergeDown(
+            mergeDown(createHyperFn(_fn), fn),
             ...args
+          )
+          //...args
           // )
         ])
 
@@ -73,6 +74,7 @@ export default ({
       // merge(context.parent, context, ...args, fn)
 
       // return fn
+      return fn.checksum
     }
 
     Object.defineProperties(fn, desc)

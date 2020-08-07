@@ -11,14 +11,18 @@ class MixWorkerThread {
     Object.assign(self.buffers, buffers)
   }
 
-  async setup ({ url }) {
+  async setup ({ url, context }) {
     this.url = url
 
     try {
-      this.fn = (await import(this.url)).default
+      this.fn = async c => [
+        c => { c.buffer.forEach(b => b.fill(0)) },
+        (await import(this.url)).default
+      ]
 
       // test a render
       await this.render({ context: {
+        ...context,
         id: 'test',
         url: this.url,
         buffer: [
@@ -54,10 +58,12 @@ class MixWorkerThread {
 
     context.buffer = workerBuffer
 
-    await mix(this.fn, context)
+    const checksum = await mix(this.fn, context)
 
     outputBuffer.forEach((buffer, i) =>
       buffer.set(workerBuffer[i]))
+
+    postMessage({ call: 'onrender', checksum })
   }
 }
 

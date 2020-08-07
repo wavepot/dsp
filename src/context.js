@@ -24,6 +24,23 @@ export default class Context {
     this.p++
   }
 
+  get checksum () {
+    let sum = ''
+    for (const key in this) {
+      if (key === 'parent') continue
+      if (Array.isArray(this[key])) {
+        sum += '' + key + this[key].map(el => el.length)
+      } else {
+        sum += '' + key + this[key]
+      }
+    }
+    return sum
+  }
+
+  set checksum (value) {
+    /* ignore */
+  }
+
   toJSON () {
     const json = {}
     for (const key in this) {
@@ -34,6 +51,7 @@ export default class Context {
     // delete json.g
     // delete json.worker
     // delete json.parent
+    json.checksum = this.checksum
     return json
   }
 

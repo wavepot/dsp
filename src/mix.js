@@ -1,7 +1,7 @@
 import Hyper from './hyper.js'
 import render from './render.js'
 import Context from './context.js'
-import getWorker from './mix-worker.js'
+import getWorker, { starting } from './mix-worker.js'
 import mixBuffers from './mix-buffers.js'
 
 export class Shared32Array extends Float32Array {
@@ -48,18 +48,19 @@ const preprocess = context => value => {
             postMessage({ call: 'setBuffers', buffers: self.buffers })
           }
 
-          const mainBuffer = c.buffer
+          // const mainBuffer = c.buffer
           c.buffer = self.buffers[id]
-
-          getWorker(url)
-            .postMessage({ call: 'render', context: c.toJSON() })
+          c.url = url
+          // getWorker(url, c)
+            // .postMessage({ call: 'render', context: c.toJSON() })
         }
 
         return c => {
           c.buffer = self.buffers[id]
+          c.url = url
 
-          if (!c.once) {
-            getWorker(url)
+          if (!c.once || !starting.has(url)) {
+            getWorker(url, c)
               .postMessage({ call: 'render', context: c.toJSON() })
           }
         }
@@ -85,6 +86,7 @@ const mergeUp = (...a) => {
 }
 
 const mergeSide = (...a) => {
+  a = a.filter(x => typeof x !== 'string')
   for (let r = a.length-1; r >= 1; r--) {
     let l = r-1
     for (let key in a[r]) {
