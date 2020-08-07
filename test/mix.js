@@ -6,7 +6,7 @@ let cache
 
 before(async () => {
   await DynamicCache.install()
-  cache = new DynamicCache('test', { 'Content-Type': 'application/javascript' })
+  cache = window.__cache = new DynamicCache('test', { 'Content-Type': 'application/javascript' })
 })
 
 describe("mix = Mix(context)", () => {
@@ -238,7 +238,7 @@ describe("mix(fn)", () => {
     expect(context.buffer[0]).to.be.buffer([3,4,5,6])
   })
 
-  it("mix deep new buffer adds to parent buffer, not shallow copy", async () => {
+  xit("mix deep new buffer adds to parent buffer, not shallow copy", async () => {
     const context = { buffer: [new Float32Array(4)] }
     const mix = Mix(context)
     const fn = async () => [
@@ -267,6 +267,7 @@ describe("mix('fn.js')", function () {
     const context = { buffer: [new Float32Array(4)] }
     const code = `export default ({ n }) => n`
     const url = await cache.put('ncount.js', code)
+    delete self.__urlRunning[url]
     const mix = Mix(context)
     const fn = url
     await mix(fn)
@@ -285,6 +286,7 @@ describe("mix('fn.js')", function () {
     const context = { buffer: [new Float32Array(4)] }
     const code = `export default ({ n }) => n`
     const url = await cache.put('ncount.js', code)
+    delete self.__urlRunning[url]
     const mix = Mix(context)
 
     let i = 0
@@ -305,6 +307,7 @@ describe("mix('fn.js')", function () {
     const context = { buffer: [new Float32Array(4)] }
     const code = `export default ({ n }) => n`
     const url = await cache.put('ncount.js', code)
+    delete self.__urlRunning[url]
     const mix = Mix(context)
     const fn = url
     await mix(fn)
@@ -316,7 +319,7 @@ describe("mix('fn.js')", function () {
     await new Promise(resolve => setTimeout(resolve, 300))
 
     await cache.put('ncount.js', `export default () => 5`)
-    delete mix.g.loaders[url]
+    delete self.__urlRunning[url]
 
     await mix(fn)
     expect(context.buffer[0]).to.be.buffer([0,2,4,6])

@@ -1,5 +1,8 @@
+import randomId from '../lib/random-id.js'
+
 export default class Context {
   constructor (data) {
+    this.id = randomId()
     this.bpm = 60
     this.beatRate = 44100
     this.sampleRate = 44100
@@ -27,9 +30,9 @@ export default class Context {
         json[key] = this[key]
       }
     }
-    delete json.g
-    delete json.worker
-    delete json.parent
+    // delete json.g
+    // delete json.worker
+    // delete json.parent
     return json
   }
 
