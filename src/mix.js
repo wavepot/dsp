@@ -1,7 +1,7 @@
 import Hyper from './hyper.js'
 import render from './render.js'
 import Context from './context.js'
-import getWorker, { starting } from './mix-worker.js'
+import mixWorker, { starting } from './mix-worker.js'
 import mixBuffers from './mix-buffers.js'
 
 export class Shared32Array extends Float32Array {
@@ -47,22 +47,12 @@ const preprocess = context => value => {
           if (typeof window === 'undefined') {
             postMessage({ call: 'setBuffers', buffers: self.buffers })
           }
-
-          // const mainBuffer = c.buffer
-          c.buffer = self.buffers[id]
-          c.url = url
-          // getWorker(url, c)
-            // .postMessage({ call: 'render', context: c.toJSON() })
         }
 
-        return c => {
+        return async c => {
           c.buffer = self.buffers[id]
           c.url = url
-
-          if (!c.once || !starting.has(url)) {
-            getWorker(url, c)
-              .postMessage({ call: 'render', context: c.toJSON() })
-          }
+          await mixWorker(url, c)
         }
       })
 

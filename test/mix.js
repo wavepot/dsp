@@ -392,19 +392,20 @@ describe("mix('fn.js')", function () {
     ]
     await mix(fn, { n: 0 })
 
-    expect(context.buffer[0]).to.be.buffer([0,0,0,0])
-    await new Promise(resolve => setTimeout(resolve, 300))
+    expect(context.buffer[0]).to.be.buffer([10,11,12,13])
+    // expect(context.buffer[0]).to.be.buffer([0,0,0,0])
+    // await new Promise(resolve => setTimeout(resolve, 300))
 
     await mix(fn, { n: 4 })
-    await new Promise(resolve => setTimeout(resolve, 300))
+    expect(context.buffer[0]).to.be.buffer([14,15,16,17])
+    // await new Promise(resolve => setTimeout(resolve, 300))
 
-    await mix(fn, { n: 8 })
-    await new Promise(resolve => setTimeout(resolve, 300))
+    // await mix(fn, { n: 8 })
+    // await new Promise(resolve => setTimeout(resolve, 300))
 
     // await mix(fn, { n: 12 })
     // await new Promise(resolve => setTimeout(resolve, 300))
 
-    expect(context.buffer[0]).to.be.buffer([10,11,12,13])
 
     // url = await cache.put('b.js', `export default c => c.x + c.n + 2`)
     // // const b_url = url

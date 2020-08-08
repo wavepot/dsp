@@ -20,16 +20,16 @@ class MixWorkerThread {
         (await import(this.url)).default
       ]
 
-      // test a render
-      await this.render({ context: {
-        ...context,
-        id: 'test',
-        url: this.url,
-        buffer: [
-          new Float32Array(4),
-          new Float32Array(4)
-        ]
-      }})
+      // // test a render
+      // await this.render({ context: {
+      //   ...context,
+      //   id: 'test',
+      //   url: this.url,
+      //   buffer: [
+      //     new Float32Array(4),
+      //     new Float32Array(4)
+      //   ]
+      // }})
 
       postMessage({ call: 'onready' })
     } catch (error) {
@@ -57,19 +57,22 @@ class MixWorkerThread {
     }
 
     context.buffer = workerBuffer
-
-    const checksum = await mix(this.fn, context)
+// console.log('RECEIEIVEVEVEVEVE', context)
+    // Object.assign(mix, context)
+    await mix(this.fn, context)
 
     outputBuffer.forEach((buffer, i) =>
       buffer.set(workerBuffer[i]))
 
-    postMessage({ call: 'onrender', checksum })
+    // if (context.id !== 'test') {
+    postMessage({ call: 'onrender', checksum: context.checksum })
+    // }
   }
 }
 
 const mixWorkerThread = new MixWorkerThread()
 
-onmessage = ({ data }) => mixWorkerThread[data.call](data)
+onmessage = ({ data }) => mixWorkerThread[data?.call]?.(data)
 
 onunhandledrejection = error =>
   postMessage({ call: 'onerror', error: error.reason })

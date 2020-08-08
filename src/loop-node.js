@@ -1,7 +1,6 @@
 export default class LoopNode {
   constructor ({ numberOfChannels = 2 } = {}) {
     this.numberOfChannels = numberOfChannels
-    this.currentBufferIndex = 0
     this.offsetTime = 0
   }
 
@@ -37,39 +36,33 @@ export default class LoopNode {
     return this.beatRate * 4
   }
 
-  get currentBuffer () {
-    return this.audioBuffers[this.currentBufferIndex]
-  }
-
-  get spareBuffer () {
-    return this.audioBuffers[1 - this.currentBufferIndex]
-  }
-
   resetTime (offset = 0) {
     this.offsetTime = this.context.currentTime + offset
-  }
-
-  swapIndex () {
-    this.currentBufferIndex = 1 - this.currentBufferIndex
   }
 
   setBpm (bpm) {
     this._bpm = bpm
   }
 
-  setBuffer (buffer) {
+  playBuffer (buffer) {
+    this.playing = true
+
+    const output = this.context.createBuffer(
+      this.numberOfChannels,
+      this.bufferSize,
+      this.sampleRate
+    )
+
     for (let i = 0; i < this.numberOfChannels; i++) {
-      const target = this.spareBuffer.getChannelData(i)
+      const target = output.getChannelData(i)
       if (target.length !== buffer[i].length) {
         throw new RangeError('loop node: buffer size provided unequal to internal buffer size: '
           + buffer[i].length + ' instead of ' + target.length)
       }
       target.set(buffer[i])
     }
-    this.swapIndex()
-    if (this.playing) {
-      this.scheduleNext()
-    }
+
+    this.scheduleNext(this.syncTime, output)
   }
 
   _onended () {
@@ -89,24 +82,31 @@ export default class LoopNode {
   connect (destination) {
     this.context = destination.context
     this.destination = destination
-    this.audioBuffers = [1,2].map(() =>
-      this.context.createBuffer(
-        this.numberOfChannels,
-        this.bufferSize,
-        this.sampleRate
-      )
-    )
+    // this.audioBuffers = [1,2,3,4,5].map(() =>
+    //   this.context.createBuffer(
+    //     this.numberOfChannels,
+    //     this.bufferSize,
+    //     this.sampleRate
+    //   )
+    // )
   }
 
-  scheduleNext (syncTime = this.syncTime) {
+  scheduleNext (syncTime = this.syncTime, buffer) {
     if (this.nextNode) {
-      throw new Error('loop node: next node schedule before previous being played')
+      this.nextNode.onended = null
+      for (let i = 0; i < this.numberOfChannels; i++) {
+        this.nextNode.buffer.getChannelData(i).fill(0)
+      }
+      this.nextNode.stop()
+      this.nextNode.disconnect()
+      console.warn('loop node: next node schedule before previous being played')
     }
     const node = this.nextNode = this.context.createBufferSource()
     node.loop = true
-    node.buffer = this.currentBuffer
+    node.buffer = buffer
     node.onended = () => this._onended()
     node.connect(this.destination)
+    console.log('schedule for', syncTime.toFixed(1))
     node.start(syncTime)
     if (!this.currentNode) {
       this.currentNode = this.nextNode
@@ -116,18 +116,18 @@ export default class LoopNode {
     }
   }
 
-  start () {
-    if (this.playing) {
-      throw new Error('loop node: `start()` called twice')
-    }
-    this.playing = true
-    this.scheduleNext()
-  }
+  // start () {
+  //   if (this.playing) {
+  //     throw new Error('loop node: `start()` called twice')
+  //   }
+  //   this.playing = true
+  //   // this.scheduleNext()
+  // }
 
   stop (syncTime = this.syncTime) {
-    if (!this.playing) {
-      throw new Error('loop node: `stop()` called but has not started')
-    }
+    // if (!this.playing) {
+    //   throw new Error('loop node: `stop()` called but has not started')
+    // }
     this.playing = false
     this.currentNode?.stop(syncTime)
     this.nextNode?.stop(syncTime)

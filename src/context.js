@@ -29,9 +29,9 @@ export default class Context {
     for (const key in this) {
       if (key === 'parent') continue
       if (Array.isArray(this[key])) {
-        sum += '' + key + this[key].map(el => el.length)
+        sum += '__' + key + this[key].map(el => el.length)
       } else {
-        sum += '' + key + this[key]
+        sum += '__' + key + this[key]
       }
     }
     return sum

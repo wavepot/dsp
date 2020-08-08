@@ -14,8 +14,7 @@ describe("LoopNode.start()", function () {
   })
 
   it("play buffer starting next bar in a loop", async () => {
-    node.setBuffer([new Float32Array([1,2,3,4])])
-    node.start()
+    node.playBuffer([new Float32Array([1,2,3,4])])
     await new Promise(resolve => setTimeout(resolve, 300))
     const result = (await context.startRendering()).getChannelData(0)
     const expected = [
@@ -64,11 +63,10 @@ describe("LoopNode.start()", function () {
   })
 
   it("play buffer then set new buffer", async () => {
-    node.setBuffer([new Float32Array(9216).fill(1)])
-    node.start()
+    node.playBuffer([new Float32Array(9216).fill(1)])
     setTimeout(() => {
-      node.setBuffer([new Float32Array(9216).fill(2)])
-    }, (node.syncTime + 0.1 - node.currentTime) * 1000)
+      node.playBuffer([new Float32Array(9216).fill(2)])
+    }, (node.syncTime + 0.3 - node.currentTime) * 1000)
     const result = await record()
     const expected = [
       1,1,1,1, 2,2,2,2, 2,2,2,2, 2,2,2,2,
@@ -78,12 +76,11 @@ describe("LoopNode.start()", function () {
   })
 
   it("play buffer then set new buffer, then new buffer again", async () => {
-    node.setBuffer([new Float32Array(9216).fill(1)])
-    node.start()
+    node.playBuffer([new Float32Array(9216).fill(1)])
     setTimeout(() => {
-      node.setBuffer([new Float32Array(9216).fill(2)])
+      node.playBuffer([new Float32Array(9216).fill(2)])
       setTimeout(() => {
-        node.setBuffer([new Float32Array(9216).fill(3)])
+        node.playBuffer([new Float32Array(9216).fill(3)])
       }, (node.syncTime + 0.1 - node.currentTime) * 1000)
     }, (node.syncTime + 0.1 - node.currentTime) * 1000)
     const result = await record()
@@ -95,12 +92,11 @@ describe("LoopNode.start()", function () {
   })
 
   it("play buffer, stop, then start", async () => {
-    node.setBuffer([new Float32Array(9216).fill(1)])
-    node.start()
+    node.playBuffer([new Float32Array(9216).fill(1)])
     setTimeout(() => {
       node.stop()
       setTimeout(() => {
-        node.start()
+        node.playBuffer([new Float32Array(9216).fill(1)])
       }, (node.syncTime + 0.1 - node.currentTime) * 1000)
     }, (node.syncTime + 0.1 - node.currentTime) * 1000)
     const result = await record()
@@ -112,13 +108,11 @@ describe("LoopNode.start()", function () {
   })
 
   it("play buffer, stop, then set new buffer and play", async () => {
-    node.setBuffer([new Float32Array(9216).fill(1)])
-    node.start()
+    node.playBuffer([new Float32Array(9216).fill(1)])
     setTimeout(() => {
       node.stop()
       setTimeout(() => {
-        node.setBuffer([new Float32Array(9216).fill(3)])
-        node.start()
+        node.playBuffer([new Float32Array(9216).fill(3)])
       }, (node.syncTime + 0.1 - node.currentTime) * 1000)
     }, (node.syncTime + 0.1 - node.currentTime) * 1000)
     const result = await record()
@@ -130,8 +124,7 @@ describe("LoopNode.start()", function () {
   })
 
   it("play buffer then stop", async () => {
-    node.setBuffer([new Float32Array(9216).fill(1)])
-    node.start()
+    node.playBuffer([new Float32Array(9216).fill(1)])
     setTimeout(() => {
       node.stop()
     }, (node.syncTime + 0.1 - node.currentTime) * 1000)
