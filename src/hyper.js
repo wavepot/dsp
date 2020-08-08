@@ -88,7 +88,7 @@ export default ({
 }
 
 const atomic = innerFn => {
-  const queue = []
+  let queue = []
 
   let lock = false
 
@@ -98,10 +98,18 @@ const atomic = innerFn => {
         queue.push([resolve, args]))
     }
     lock = true
-    const result = await innerFn(...args)
+    let result
+    try {
+      result = await innerFn(...args)
+    } catch (error) {
+      result = error
+    }
     lock = false
     if (queue.length) {
-      const [callback, _args] = queue.shift()
+      const [callback, _args] = queue.pop()
+      const slice = queue.slice()
+      queue = []
+      slice.forEach(([callback]) => callback(new Error('Discarded')))
       atomicWrapperFn(..._args).then(callback)
     }
     return result

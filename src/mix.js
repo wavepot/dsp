@@ -22,6 +22,8 @@ export default context => {
 
 const loaders = {}
 
+self.buffers = {}
+
 const preprocess = context => value => {
   if (typeof value === 'string') {
     let url = value
@@ -39,16 +41,21 @@ const preprocess = context => value => {
     loaders[id] =
     loaders[id] ??
       (async c => {
-        // console.log('create loader', id)
-        const sharedBuffer = c.buffer.map(buffer =>
-          new Shared32Array(buffer.length))
-        // if (!self.buffers[id]) {
+        // console.log('create loader', id, self.buffers)
 
-        //   self.buffers[id] = sharedBuffer
-        //   if (typeof window === 'undefined') {
-        //     postMessage({ call: 'setBuffers', buffers: self.buffers })
-        //   }
-        // }
+        let sharedBuffer = self.buffers[id]
+
+        if (!sharedBuffer) {
+          console.log('CREATING NEW BUFFER', id)
+          sharedBuffer = c.buffer.map(buffer =>
+            new Shared32Array(buffer.length))
+
+          self.buffers[id] = sharedBuffer
+          if (typeof window === 'undefined') {
+            postMessage({ call: 'setBuffers', buffers: self.buffers })
+          }
+        }
+
         return async c => {
           c.buffer = sharedBuffer
           c.url = url

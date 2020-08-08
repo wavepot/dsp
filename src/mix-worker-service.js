@@ -2,7 +2,7 @@ const isMain = typeof window !== 'undefined'
 export const starting = new Map
 export const workers = new Map
 
-// self.buffers = {}
+self.buffers = {}
 
 export const callbacks = new Map
 
@@ -25,7 +25,7 @@ class MixWorker {
       url,
       context: (context.toJSON?.() ?? context)
     })
-    // this.postMessage({ call: 'setBuffers', buffers: self.buffers })
+    this.worker.postMessage({ call: 'setBuffers', buffers: self.buffers })
   }
 
   set onmessage (fn) {
@@ -103,16 +103,21 @@ class MixWorker {
     }
 
     let oldWorker = workers.get(this.url)
-    if (oldWorker) {
+    if (oldWorker && oldWorker !== this && oldWorker.state === 'ready') {
       starting.set(this.url, oldWorker)
+      if (this.sendQueue.length > 0) {
+        this.sendQueue.forEach(args => oldWorker.postMessage(...args))
+        this.sendQueue = []
+      }
+    } else {
+      oldWorker = null
     }
 
     for (const [id, { callback, context }] of callbacks.entries()) {
       if (id.includes(this.url)) {
-        // TODO: retry
         callback.retries = callback.retries || 0
         callback.retries++
-        if (oldWorker && callback.retries < 2) {
+        if (oldWorker && callback.retries < 5) {
           console.log('found old worker', oldWorker)
           console.log(context)
           oldWorker.postMessage({ call: 'render', callbackId: id, context })
