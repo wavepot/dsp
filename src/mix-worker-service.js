@@ -2,12 +2,11 @@ const isMain = typeof window !== 'undefined'
 export const starting = new Map
 export const workers = new Map
 
-self.buffers = {}
+// self.buffers = {}
 
 export const callbacks = new Map
-export const checksums = new Set
 
-const WORKER_URL = import.meta.url.replace('.js', '-thread.js')
+const WORKER_URL = import.meta.url.replace('service', 'thread')
 
 class MixWorker {
   constructor (url, context) {
@@ -21,8 +20,12 @@ class MixWorker {
       this[data?.call]?.(data)
       this.listeners.forEach(fn => fn({ data }))
     }
-    this.worker.postMessage({ call: 'setup', url, context: (context.toJSON?.() ?? context) })
-    this.postMessage({ call: 'setBuffers', buffers: self.buffers })
+    this.worker.postMessage({
+      call: 'setup',
+      url,
+      context: (context.toJSON?.() ?? context)
+    })
+    // this.postMessage({ call: 'setBuffers', buffers: self.buffers })
   }
 
   set onmessage (fn) {
@@ -35,14 +38,14 @@ class MixWorker {
 
   postMessage (...args) {
     if (this.state === 'ready') {
-      if (args[0].checksum) {
-        const checksum = args[0].checksum
-        if (checksums.has(checksum)) {
-          // console.log('already rendered, ignore postMessage')
-          callbacks.get(checksum)?.()
-          return
-        }
-      }
+      // if (args[0].checksum) {
+      //   const checksum = args[0].checksum
+      //   if (checksums.has(checksum)) {
+      //     // console.log('already rendered, ignore postMessage')
+      //     callbacks.get(checksum)?.()
+      //     return
+      //   }
+      // }
       this.worker.postMessage(...args)
     } else if (this.state === 'starting') {
       this.sendQueue.push(args)
@@ -52,11 +55,19 @@ class MixWorker {
   proxyMessage ({ url, context, args }) {
     const worker = getWorker(url, context)
     // console.log('SENDING OUTTTTT', args[0].checksum)
-    const checksum = args[0].checksum
+    // console.log('proxying message id', args[0].callbackId)
     const callback = () => {
-      this.worker.postMessage({ call: 'onrender', checksum })
+      // console.log('callback called in proxy', args[0].callbackId, url)
+      this.worker.postMessage({
+        call: 'onrender',
+        callbackId: args[0].callbackId
+      })
+      callbacks.delete(args[0].callbackId)
     }
-    callbacks.set(checksum, callback)
+    callbacks.set(args[0].callbackId, {
+      callback,
+      context: args[0].context
+    })
 
     worker.postMessage(...args)
   }
@@ -68,13 +79,18 @@ class MixWorker {
     this.sendQueue = []
   }
 
-  onrender ({ checksum }) {
+  onrender (data) {
     // console.log('context rendered', checksum)
-    checksums.add(checksum)
+    // checksums.add(checksum)
 
-    const callback = callbacks.get(checksum)
-    if (!callback) return console.error('no such callback:', checksum)
-    callbacks.delete(checksum)
+    if (!callbacks.has(data.callbackId)) {
+      if (data.callbackId) {
+        console.error('no such callback:', data.callbackId, this.url)
+      }
+      return
+    }
+    const { callback } = callbacks.get(data.callbackId)
+    // callbacks.delete(checksum)
     callback()
   }
 
@@ -86,8 +102,25 @@ class MixWorker {
       starting.delete(this.url)
     }
 
-    if (workers.get(this.url) === this) {
-      workers.delete(this.url)
+    let oldWorker = workers.get(this.url)
+    if (oldWorker) {
+      starting.set(this.url, oldWorker)
+    }
+
+    for (const [id, { callback, context }] of callbacks.entries()) {
+      if (id.includes(this.url)) {
+        // TODO: retry
+        callback.retries = callback.retries || 0
+        callback.retries++
+        if (oldWorker && callback.retries < 2) {
+          console.log('found old worker', oldWorker)
+          console.log(context)
+          oldWorker.postMessage({ call: 'render', callbackId: id, context })
+        } else {
+          callback()
+          callbacks.delete(id)
+        }
+      }
     }
   }
 }
@@ -123,17 +156,31 @@ const getWorker = (url, context) => {
   return worker
 }
 
+let callbackId = 0
+
 const mixWorker = (url, context) => {
-  // console.log('CHECKSUM OUT', context.checksum)
+  const cid = context.id + url + (++callbackId)
+
+  const promise = new Promise(resolve => {
+    const callback = () => {
+      // console.log('callback called', cid, url)
+      callbacks.delete(cid)
+      resolve()
+    }
+    callbacks.set(cid, {
+      callback,
+      context: context.toJSON()
+    })
+  })
+
   getWorker(url, context)
     .postMessage({
       call: 'render',
-      checksum: context.checksum,
+      callbackId: cid,
       context: context.toJSON()
     })
 
-  return new Promise(resolve =>
-    callbacks.set(context.checksum, resolve))
+  return promise
 }
 
 export default mixWorker
@@ -141,8 +188,7 @@ export default mixWorker
 if (!isMain) {
   self.addEventListener('message', ({ data }) => {
     if (data.call === 'onrender') {
-      const callback = callbacks.get(data.checksum)
-      callbacks.delete(data.checksum)
+      const { callback } = callbacks.get(data.callbackId)
       callback()
     }
   })

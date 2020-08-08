@@ -2,6 +2,7 @@ export default class LoopNode {
   constructor ({ numberOfChannels = 2 } = {}) {
     this.numberOfChannels = numberOfChannels
     this.offsetTime = 0
+    this.currentBufferIndex = 0
   }
 
   get bpm () {
@@ -29,7 +30,7 @@ export default class LoopNode {
     const bar = this.bufferSize / this.sampleRate
     const time = this.currentTime
     const remain = bar - (time % bar)
-    return time + remain
+    return time + remain + this.offsetTime
   }
 
   get bufferSize () {
@@ -44,14 +45,49 @@ export default class LoopNode {
     this._bpm = bpm
   }
 
-  playBuffer (buffer) {
-    this.playing = true
+  _onended () {
+    this.gain.disconnect()
+    this.playingNode?.disconnect()
+    this.onended?.()
+  }
 
-    const output = this.context.createBuffer(
-      this.numberOfChannels,
-      this.bufferSize,
-      this.sampleRate
+  connect (destination) {
+    this.context = destination.context
+    this.destination = destination
+    this.gain = this.context.createGain()
+    this.audioBuffers = [1,2].map(() =>
+      this.context.createBuffer(
+        this.numberOfChannels,
+        this.bufferSize,
+        this.sampleRate
+      )
     )
+    this.nextBuffer = this.audioBuffers[0]
+  }
+
+  _onbar () {
+    if (!this.playing) return
+    if (this.scheduledNode) {
+      this.playingNode = this.scheduledNode
+      this.scheduledNode = null
+      this.currentBufferIndex = 1 - this.currentBufferIndex
+      this.nextBuffer = this.audioBuffers[this.currentBufferIndex]
+    }
+    this.scheduleNextBar()
+    this.onbar?.()
+  }
+
+  scheduleNextBar (syncTime = this.syncTime) {
+    const bar = this.context.createConstantSource()
+    bar.onended = () => this._onbar()
+    bar.start()
+    bar.stop(syncTime)
+  }
+
+  playBuffer (buffer) {
+    // console.log('should render buffer:', buffer[0].slice(0,3))
+
+    const output = this.nextBuffer
 
     for (let i = 0; i < this.numberOfChannels; i++) {
       const target = output.getChannelData(i)
@@ -62,75 +98,34 @@ export default class LoopNode {
       target.set(buffer[i])
     }
 
-    this.scheduleNext(this.syncTime, output)
+    if (!this.scheduledNode) {
+      const syncTime = this.syncTime
+      const node = this.scheduledNode = this.context.createBufferSource()
+      node.buffer = this.nextBuffer
+      node.connect(this.gain)
+      node.loop = true
+      node.start(syncTime)
+      this.playingNode?.stop(syncTime)
+    }
   }
 
-  _onended () {
+  start () {
     if (!this.playing) {
-      this.currentNode?.disconnect()
-      this.currentNode = null
-      this.nextNode?.disconnect()
-      this.nextNode = null
-      return this.onended?.()
-    }
-    this.currentNode.disconnect()
-    this.currentNode = this.nextNode
-    this.nextNode = null
-    this.onbar?.()
-  }
-
-  connect (destination) {
-    this.context = destination.context
-    this.destination = destination
-    // this.audioBuffers = [1,2,3,4,5].map(() =>
-    //   this.context.createBuffer(
-    //     this.numberOfChannels,
-    //     this.bufferSize,
-    //     this.sampleRate
-    //   )
-    // )
-  }
-
-  scheduleNext (syncTime = this.syncTime, buffer) {
-    if (this.nextNode) {
-      this.nextNode.onended = null
-      for (let i = 0; i < this.numberOfChannels; i++) {
-        this.nextNode.buffer.getChannelData(i).fill(0)
-      }
-      this.nextNode.stop()
-      this.nextNode.disconnect()
-      console.warn('loop node: next node schedule before previous being played')
-    }
-    const node = this.nextNode = this.context.createBufferSource()
-    node.loop = true
-    node.buffer = buffer
-    node.onended = () => this._onended()
-    node.connect(this.destination)
-    console.log('schedule for', syncTime.toFixed(1))
-    node.start(syncTime)
-    if (!this.currentNode) {
-      this.currentNode = this.nextNode
-      this.nextNode = null
-    } else {
-      this.currentNode.stop(syncTime)
+      this.playing = true
+      this.gain.connect(this.destination)
+      this.scheduleNextBar()
     }
   }
-
-  // start () {
-  //   if (this.playing) {
-  //     throw new Error('loop node: `start()` called twice')
-  //   }
-  //   this.playing = true
-  //   // this.scheduleNext()
-  // }
 
   stop (syncTime = this.syncTime) {
-    // if (!this.playing) {
-    //   throw new Error('loop node: `stop()` called but has not started')
-    // }
+    if (!this.playing) {
+      throw new Error('loop node: `stop()` called but has not started')
+    }
     this.playing = false
-    this.currentNode?.stop(syncTime)
-    this.nextNode?.stop(syncTime)
+    this.playingNode.onended = () => this._onended()
+    this.playingNode?.stop()
+    this.scheduledNode?.stop(0)
+    this.scheduledNode?.disconnect()
   }
 }
 

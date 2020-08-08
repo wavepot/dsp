@@ -1,5 +1,4 @@
 export default (target, source) => {
-  // console.log('mixing', target, source)
   if (target.length === 2) {
     for (let x = 0; x < target[0].length; x++) {
       target[0][x] += source[0][x % source[0].length]

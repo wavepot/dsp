@@ -1,7 +1,7 @@
 import './setup.js'
 import Mix from '../src/mix.js'
 import DynamicCache from '../dynamic-cache.js'
-import { starting, workers } from '../src/mix-worker.js'
+import { starting, workers } from '../src/mix-worker-service.js'
 
 let cache
 
@@ -10,14 +10,14 @@ before(async () => {
   cache = window.__cache = new DynamicCache('test', { 'Content-Type': 'application/javascript' })
 })
 
-xdescribe("mix = Mix(context)", () => {
+describe("mix = Mix(context)", () => {
   it("returns a mix function", () => {
     const mix = Mix({})
     expect(mix).to.be.a('function')
   })
 })
 
-xdescribe("mix(fn)", () => {
+describe("mix(fn)", () => {
   it("renders fn into buffer", async () => {
     const context = { buffer: [new Float32Array(4)] }
     const mix = Mix(context)

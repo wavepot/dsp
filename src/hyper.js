@@ -23,7 +23,7 @@ export default ({
   const createHyperFn = parent => {
     const context = { ...parent, parent }
 
-    const fn = async (...args) => {
+    const fn = atomic(async (...args) => {
       const pre = preprocess(fn)
       args = args.map(pre)
 
@@ -75,7 +75,7 @@ export default ({
 
       // return fn
       return fn.checksum
-    }
+    })
 
     Object.defineProperties(fn, desc)
     mergeDown(fn, context)
@@ -85,4 +85,27 @@ export default ({
   }
 
   return createHyperFn(top)
+}
+
+const atomic = innerFn => {
+  const queue = []
+
+  let lock = false
+
+  const atomicWrapperFn = async (...args) => {
+    if (lock) {
+      return new Promise(resolve =>
+        queue.push([resolve, args]))
+    }
+    lock = true
+    const result = await innerFn(...args)
+    lock = false
+    if (queue.length) {
+      const [callback, _args] = queue.shift()
+      atomicWrapperFn(..._args).then(callback)
+    }
+    return result
+  }
+
+  return atomicWrapperFn
 }

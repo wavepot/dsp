@@ -64,9 +64,10 @@ describe("LoopNode.start()", function () {
 
   it("play buffer then set new buffer", async () => {
     node.playBuffer([new Float32Array(9216).fill(1)])
-    setTimeout(() => {
+    node.onbar = () => {
       node.playBuffer([new Float32Array(9216).fill(2)])
-    }, (node.syncTime + 0.3 - node.currentTime) * 1000)
+      node.onbar = null
+    }
     const result = await record()
     const expected = [
       1,1,1,1, 2,2,2,2, 2,2,2,2, 2,2,2,2,
@@ -77,12 +78,13 @@ describe("LoopNode.start()", function () {
 
   it("play buffer then set new buffer, then new buffer again", async () => {
     node.playBuffer([new Float32Array(9216).fill(1)])
-    setTimeout(() => {
+    node.onbar = () => {
       node.playBuffer([new Float32Array(9216).fill(2)])
-      setTimeout(() => {
+      node.onbar = () => {
         node.playBuffer([new Float32Array(9216).fill(3)])
-      }, (node.syncTime + 0.1 - node.currentTime) * 1000)
-    }, (node.syncTime + 0.1 - node.currentTime) * 1000)
+        node.onbar = null
+      }
+    }
     const result = await record()
     const expected = [
       1,1,1,1, 2,2,2,2, 3,3,3,3, 3,3,3,3,
@@ -93,12 +95,14 @@ describe("LoopNode.start()", function () {
 
   it("play buffer, stop, then start", async () => {
     node.playBuffer([new Float32Array(9216).fill(1)])
-    setTimeout(() => {
+    node.onbar = () => {
+      node.onbar = null
       node.stop()
-      setTimeout(() => {
+      node.onended = () => {
         node.playBuffer([new Float32Array(9216).fill(1)])
-      }, (node.syncTime + 0.1 - node.currentTime) * 1000)
-    }, (node.syncTime + 0.1 - node.currentTime) * 1000)
+        node.onended = null
+      }
+    }
     const result = await record()
     const expected = [
       1,1,1,1, 0,0,0,0, 1,1,1,1, 1,1,1,1,
@@ -109,12 +113,14 @@ describe("LoopNode.start()", function () {
 
   it("play buffer, stop, then set new buffer and play", async () => {
     node.playBuffer([new Float32Array(9216).fill(1)])
-    setTimeout(() => {
+    node.onbar = () => {
+      node.onbar = null
       node.stop()
-      setTimeout(() => {
+      node.onended = () => {
         node.playBuffer([new Float32Array(9216).fill(3)])
-      }, (node.syncTime + 0.1 - node.currentTime) * 1000)
-    }, (node.syncTime + 0.1 - node.currentTime) * 1000)
+        node.onended = null
+      }
+    }
     const result = await record()
     const expected = [
       1,1,1,1, 0,0,0,0, 3,3,3,3, 3,3,3,3,
