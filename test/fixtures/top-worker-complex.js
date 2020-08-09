@@ -1,18 +1,19 @@
-import getWorker from '/src/top-worker.js'
+import mixWorker from '/src/mix-worker-service.js'
 
 const worker = {
-  incOther () {
-    const url = '/test/fixtures/top-worker-simple.js'
-    const worker = getWorker(url)
-    worker.postMessage({ call: 'inc' })
+  async incOther () {
+    const url = '/test/fixtures/mix-worker-simple.js'
+    await mixWorker(url, { toJSON: () => ({ call: 'inc' }) })
   },
-  other () {
-    const url = '/test/fixtures/top-worker-simple.js'
-    const worker = getWorker(url)
-    worker.postMessage({ call: 'foo' })
+  async other () {
+    const url = '/test/fixtures/mix-worker-simple.js'
+    await mixWorker(url, { toJSON: () => ({ call: 'foo' }) })
   }
 }
 
 onmessage = ({ data }) => worker[data.call](data)
+
+onunhandledrejection = error =>
+  postMessage({ call: 'onerror', error: error.reason })
 
 postMessage({ call: 'onready' })

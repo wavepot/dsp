@@ -1,8 +1,9 @@
 import Hyper from './hyper.js'
 import render from './render.js'
 import Context from './context.js'
-import mixWorker, { starting } from './mix-worker-service.js'
+import mixWorker from './mix-worker-service.js'
 import mixBuffers from './mix-buffers.js'
+import rpc from './lazy-singleton-worker-rpc.js'
 
 export class Shared32Array extends Float32Array {
   constructor (length) {
@@ -20,9 +21,11 @@ export default context => {
   })
 }
 
+const BUFFER_SERVICE_URL = new URL('buffer-service.js', import.meta.url).href
+
 const loaders = {}
 
-self.buffers = {}
+self.buffers = self.buffers ?? {}
 
 const preprocess = context => value => {
   if (typeof value === 'string') {
@@ -41,22 +44,22 @@ const preprocess = context => value => {
     loaders[id] =
     loaders[id] ??
       (async c => {
-        // console.log('create loader', id, self.buffers)
-
         let sharedBuffer = self.buffers[id]
 
         if (!sharedBuffer) {
-          console.log('CREATING NEW BUFFER', id)
           sharedBuffer = c.buffer.map(buffer =>
             new Shared32Array(buffer.length))
 
           self.buffers[id] = sharedBuffer
-          if (typeof window === 'undefined') {
-            postMessage({ call: 'setBuffers', buffers: self.buffers })
-          }
+
+          Object.assign(
+            self.buffers,
+            await rpc(BUFFER_SERVICE_URL, 'setBuffers', [self.buffers])
+          )
         }
 
         return async c => {
+          // console.log('shared buffer is', id, sharedBuffer[0].slice(0,5))
           c.buffer = sharedBuffer
           c.url = url
           await mixWorker(url, c)

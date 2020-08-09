@@ -1,75 +1,62 @@
+import './rpc-worker-include.js'
 import Mix from './mix.js'
+import atomic from '../lib/atomic.js'
 
-self.buffers = {}
+self.buffers = self.buffers ?? {}
+self.hasSetup = false
+self.contexts = new Map
 
-class MixWorkerThread {
-  constructor () {
-    this.contexts = new Map
+const BUFFER_SERVICE_URL = new URL('buffer-service.js', import.meta.url).href
+
+const render = async (context) => {
+  let mix = self.contexts.get(context.id)
+
+  if (!mix) {
+    mix = Mix(context, {
+      buffer: context.buffer
+        .map(buffer => new Float32Array(buffer.length)) })
+
+    self.contexts.set(context.id, mix)
   }
 
-  setBuffers ({ buffers }) {
-    Object.assign(self.buffers, buffers)
-  }
+  await mix(self.fn, context, { buffer: mix.buffer })
 
-  async setup ({ url, context }) {
-    this.url = url
-
-    try {
-      this.fn = async c => [
-        c => { c.buffer.forEach(b => b.fill(0)) },
-        (await import(this.url)).default
-      ]
-
-      // test a render
-      await this.render({ context: {
-        ...context,
-        id: 'test',
-        url: this.url,
-        buffer: [
-          new Float32Array(4),
-          new Float32Array(4)
-        ]
-      }})
-
-      postMessage({ call: 'onready' })
-    } catch (error) {
-      postMessage({ call: 'onerror', error })
-    }
-  }
-
-  async render ({ callbackId, context }) {
-    let mix = this.contexts.get(context.id)
-
-    const outputBuffer = context.buffer
-
-    let workerBuffer
-    if (!mix) {
-      workerBuffer = context.buffer.map(buffer =>
-        new Float32Array(buffer.length))
-
-      context.buffer = workerBuffer
-
-      mix = Mix(context)
-
-      this.contexts.set(context.id, mix)
-    } else {
-      workerBuffer = mix.buffer
-    }
-
-    context.buffer = workerBuffer
-
-    await mix(this.fn, context)
-
-    outputBuffer.forEach((buffer, i) =>
-      buffer.set(workerBuffer[i]))
-
-    postMessage({ call: 'onrender', callbackId })
-  }
+  context.buffer
+    .forEach((buffer, i) => buffer.set(mix.buffer[i]))
 }
 
-const mixWorkerThread = new MixWorkerThread()
+const setup = async (url, context) => {
+  self.url = url
 
-onmessage = ({ data }) => mixWorkerThread[data?.call]?.(data)
+  self.fn = async c => [
+    c => { c.buffer.forEach(b => b.fill(0)) },
+    (await import(self.url)).default
+  ]
 
-onunhandledrejection = error =>
-  postMessage({ call: 'onerror', error: error.reason })
+  Object.assign(
+    self.buffers,
+    await self.rpc(BUFFER_SERVICE_URL, 'getBuffers')
+  )
+
+  // test a render
+  await render({
+    ...context,
+    id: 'test',
+    url: self.url,
+    buffer: [
+      new Float32Array(4),
+      new Float32Array(4)
+    ]
+  })
+
+  self.hasSetup = true
+}
+
+self.methods = {
+  render: atomic(async (url, context) => {
+    if (!self.hasSetup) {
+      await setup(url, context)
+    }
+    return render(context)
+  })
+}

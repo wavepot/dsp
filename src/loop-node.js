@@ -88,7 +88,6 @@ export default class LoopNode {
     // console.log('should render buffer:', buffer[0].slice(0,3))
     const syncTime = this.syncTime
     const output = this.nextBuffer
-
     for (let i = 0; i < this.numberOfChannels; i++) {
       const target = output.getChannelData(i)
       if (target.length !== buffer[i].length) {
@@ -99,6 +98,7 @@ export default class LoopNode {
     }
 
     if (!this.scheduledNode) {
+      console.log('schedule for', syncTime)
       const node = this.scheduledNode = this.context.createBufferSource()
       node.buffer = this.nextBuffer
       node.connect(this.gain)

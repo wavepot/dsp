@@ -29,7 +29,7 @@ export default class DynamicCache {
     })
   }
 
-  constructor (namespace, headers) {
+  constructor (namespace = 'test', headers = { 'Content-Type': 'application/javascript' }) {
     this.namespace = namespace
     this.headers = headers
     this.path = '/dynamic-cache/cache/' + this.namespace
@@ -50,8 +50,6 @@ export default class DynamicCache {
     const cache = await caches.open('dynamic-cache:' + this.namespace)
     await cache.put(req, res)
     this.onchange?.(location.origin + filename)
-    // const bus = new BroadcastChannel('dynamic-cache:' + this.namespace)
-    // bus.postMessage({ type: 'change', filename })
     return location.origin + filename
   }
 }

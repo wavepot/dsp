@@ -7,6 +7,7 @@
 //   }
 //   return args[0]
 // }
+import atomic from '../lib/atomic.js'
 
 export default ({
   context: top,
@@ -75,7 +76,7 @@ export default ({
 
       // return fn
       return fn.checksum
-    })
+    }, { recentOnly: true })
 
     Object.defineProperties(fn, desc)
     mergeDown(fn, context)
@@ -85,35 +86,4 @@ export default ({
   }
 
   return createHyperFn(top)
-}
-
-const atomic = innerFn => {
-  let queue = []
-
-  let lock = false
-
-  const atomicWrapperFn = async (...args) => {
-    if (lock) {
-      return new Promise(resolve =>
-        queue.push([resolve, args]))
-    }
-    lock = true
-    let result
-    try {
-      result = await innerFn(...args)
-    } catch (error) {
-      result = error
-    }
-    lock = false
-    if (queue.length) {
-      const [callback, _args] = queue.pop()
-      const slice = queue.slice()
-      queue = []
-      slice.forEach(([callback]) => callback(new Error('Discarded')))
-      atomicWrapperFn(..._args).then(callback)
-    }
-    return result
-  }
-
-  return atomicWrapperFn
 }
