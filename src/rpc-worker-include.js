@@ -7,13 +7,17 @@ self.callbacks = self.callbacks ?? new Map
 self.onmessage = async ({ data }) => {
   try {
     if (data.message.call === 'onreply') {
-      const { replyTo, result } = data.message
+      const { replyTo, error, result } = data.message
       const callback = self.callbacks.get(replyTo)
       if (callback) {
         self.callbacks.delete(replyTo)
-        callback(result)
+        if (error) {
+          callback.reject(error)
+        } else {
+          callback.resolve(result)
+        }
       } else {
-        console.warn('onreply discarded (receiver dead?)', replyTo, result, location.href)
+        console.warn('onreply discarded (receiver dead?)', replyTo, result ?? error, location.href)
       }
       self.postMessage({ ack: data.ackId })
       return
@@ -30,7 +34,13 @@ self.onmessage = async ({ data }) => {
       result
     })
   } catch (error) {
-    self.postMessage({ call: 'onerror', error })
+    self.postMessage({
+      ack: data.ackId,
+      call: 'onreply',
+      replyTo: data.message.callbackId,
+      error
+    })
+    // self.postMessage({ call: 'onerror', error })
   }
 }
 

@@ -21,7 +21,7 @@ export default class ShotNode {
   }
 
   get bufferSize () {
-    return this.beatRate * 4
+    return this.sampleRate
   }
 
   setBpm (bpm) {
@@ -32,7 +32,7 @@ export default class ShotNode {
     for (let i = 0; i < this.numberOfChannels; i++) {
       const target = this.audioBuffer.getChannelData(i)
       if (target.length !== buffer[i].length) {
-        throw new RangeError('loop node: buffer size provided unequal to internal buffer size: '
+        throw new RangeError('shot node: buffer size provided unequal to internal buffer size: '
           + buffer[i].length + ' instead of ' + target.length)
       }
       target.set(buffer[i])

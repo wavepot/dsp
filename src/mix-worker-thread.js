@@ -2,16 +2,15 @@ import './rpc-worker-include.js'
 import Mix from './mix.js'
 import atomic from '../lib/atomic.js'
 
-self.buffers = self.buffers ?? {}
 self.hasSetup = false
 self.contexts = new Map
-
-const BUFFER_SERVICE_URL = new URL('buffer-service.js', import.meta.url).href
 
 const render = async (context) => {
   let mix = self.contexts.get(context.id)
 
-  if (!mix) {
+  if (!mix
+  || mix.buffer.length !== context.buffer.length
+  || mix.buffer[0].length !== context.buffer[0].length) {
     mix = Mix(context, {
       buffer: context.buffer
         .map(buffer => new Float32Array(buffer.length)) })
@@ -32,11 +31,6 @@ const setup = async (url, context) => {
     c => { c.buffer.forEach(b => b.fill(0)) },
     (await import(self.url)).default
   ]
-
-  Object.assign(
-    self.buffers,
-    await self.rpc(BUFFER_SERVICE_URL, 'getBuffers')
-  )
 
   // test a render
   await render({

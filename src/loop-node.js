@@ -98,7 +98,7 @@ export default class LoopNode {
     }
 
     if (!this.scheduledNode) {
-      console.log('schedule for', syncTime)
+      // console.log('schedule for', syncTime)
       const node = this.scheduledNode = this.context.createBufferSource()
       node.buffer = this.nextBuffer
       node.connect(this.gain)
@@ -121,10 +121,14 @@ export default class LoopNode {
       throw new Error('loop node: `stop()` called but has not started')
     }
     this.playing = false
-    this.playingNode.onended = () => this._onended()
-    this.playingNode?.stop()
-    this.scheduledNode?.stop(0)
-    this.scheduledNode?.disconnect()
+    if (this.playingNode) {
+      this.playingNode.onended = () => this._onended()
+      this.playingNode.stop()
+    }
+    if (this.scheduledNode) {
+      this.scheduledNode.stop(0)
+      this.scheduledNode.disconnect()
+    }
   }
 }
 

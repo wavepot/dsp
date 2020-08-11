@@ -13,13 +13,14 @@ rpc.get = url => getRpc(url)
 rpc.update = url => getRpc(url).worker.updateInstance()
 rpc.markAsSafe = url => getRpc(url).worker.markAsSafe()
 rpc.clear = () => rpcs.clear()
-rpc.clearHanging = () => [...callbacks.values()].forEach(fn => fn())
+rpc.clearHanging = error => { [...callbacks.values()].forEach(fn => fn.reject(error)), callbacks.clear() }
 rpc.clearAll = () => (rpc.clear(), rpc.clearHanging())
 
 export default rpc
 
 class Rpc {
   constructor (url) {
+    this.url = url
     this.worker = new SafeDynamicWorker(url)
     this.worker.onmessage = ({ data }) => {
       if (!data.call) return
@@ -34,19 +35,30 @@ class Rpc {
   }
 
   async proxyRpc ({ url, callbackId, method, args }) {
-    const result = await rpc(url, method, args)
-    this.worker.postMessage({
-      call: 'onreply',
-      replyTo: callbackId,
-      result
-    })
+    try {
+      const result = await rpc(url, method, args)
+      this.worker.postMessage({
+        call: 'onreply',
+        replyTo: callbackId,
+        result
+      })
+    } catch (error) {
+      this.worker.postMessage({
+        call: 'onreply',
+        replyTo: callbackId,
+        error
+      })
+    }
   }
 
   rpc (method, args) {
     const cid = ++callbackId
 
-    const promise = new Promise(resolve =>
-      callbacks.set(cid, resolve))
+    const promise = Promise.race([
+      new Promise((_, reject) => setTimeout(reject, 5000, new Error('rpc: Timed out.'))),
+      new Promise((resolve, reject) =>
+        callbacks.set(cid, { resolve, reject }))
+    ])
 
     this.worker.postMessage({
       call: method,
@@ -58,14 +70,20 @@ class Rpc {
   }
 
   onerror ({ error }) {
-    console.log('receive!', error)
     this.worker.dispatch('onerror', error)
+    rpc.clearHanging(error)
   }
 
-  onreply ({ replyTo, result }) {
+  onreply ({ replyTo, error, result }) {
     const callback = callbacks.get(replyTo)
-    callbacks.delete(replyTo)
-    callback(result)
+    if (callback) {
+      callbacks.delete(replyTo)
+      if (error) {
+        callback.reject(error)
+      } else {
+        callback.resolve(result)
+      }
+    }
   }
 }
 
@@ -77,8 +95,11 @@ class RpcProxy {
   rpc (method, args) {
     const cid = ++callbackId
 
-    const promise = new Promise(resolve =>
-      callbacks.set(cid, resolve))
+    const promise = Promise.race([
+      new Promise((_, reject) => setTimeout(reject, 5000, new Error('rpc: Timed out.'))),
+      new Promise((resolve, reject) =>
+        callbacks.set(cid, { resolve, reject }))
+    ])
 
     postMessage({
       call: 'proxyRpc',

@@ -38,6 +38,7 @@ export default class SafeDynamicWorker {
       this.bindListeners()
       this.retryMessages()
     } else {
+      // this.pendingAckMessages.splice(0)
       this.dispatch('onfail', new Error('Impossible to heal: ' + this.url))
     }
   }

@@ -4,7 +4,7 @@ export default async (fn, context) => {
   const { buffer } = context
   const numOfChannels = buffer.length
 
-  assertFinite(context.n)
+  assertFinite(context.frame)
 
   if (numOfChannels > 2) {
     throw new RangeError('unsupported number of channels [' + numOfChannels + ']')

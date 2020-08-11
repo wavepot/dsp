@@ -8,11 +8,12 @@
 //   return args[0]
 // }
 import atomic from '../lib/atomic.js'
+import checksumOf from '../lib/checksum.js'
 
 export default ({
   context: top,
   execute,
-  preprocess = () => x => x,
+  // preprocess = () => x => x,
   mergeDown = Object.assign,
   mergeSide = Object.assign,
   mergeUp = x => x
@@ -25,8 +26,10 @@ export default ({
     const context = { ...parent, parent }
 
     const fn = atomic(async (...args) => {
-      const pre = preprocess(fn)
-      args = args.map(pre)
+      fn.childId = checksumOf(args)
+      fn.ref = fn
+      // const pre = preprocess(fn)
+      // args = args.map(pre)
 
       const fns = args
         .filter(arg => typeof arg === 'function')
@@ -54,7 +57,7 @@ export default ({
               //   )
               // ))
             } else {
-              fnMap.set(_fn, result)
+              fnMap.set(_fn, typeof result === 'function' ? result : () => {})
             }
           } else {
             fnMap.set(_fn, _fn)
@@ -81,6 +84,12 @@ export default ({
     Object.defineProperties(fn, desc)
     mergeDown(fn, context)
     Object.defineProperties(fn, proto)
+
+    fn.ref = context.ref ?? fn
+
+    fn.innerFn = parent
+
+    fn.clone = data => mergeDown(createHyperFn(fn), data)
 
     return fn
   }
