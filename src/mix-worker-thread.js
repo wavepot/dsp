@@ -13,7 +13,7 @@ const render = async (context) => {
   || mix.buffer[0].length !== context.buffer[0].length) {
     mix = Mix(context, {
       buffer: context.buffer
-        .map(buffer => new Float32Array(buffer.length)) })
+        .map(buffer => buffer.slice()) }) //new Float32Array(buffer.length)) })
 
     self.contexts.set(context.id, mix)
   }
@@ -28,7 +28,7 @@ const setup = async (url, context) => {
   self.url = url
 
   self.fn = async c => [
-    c => { c.buffer.forEach(b => b.fill(0)) },
+    // c => { c.buffer.forEach(b => b.fill(0)) },
     (await import(self.url)).default
   ]
 

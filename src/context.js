@@ -146,6 +146,8 @@ export default class Context {
     /* ignore */
   }
 
+  get bufferSize () { return this.buffer[0].length }
+
   get sr () { return this.sampleRate }
   get br () { return this.beatRate }
 
