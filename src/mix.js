@@ -34,7 +34,7 @@ const mergeSide = (...a) => {
       // sibling iteration shouldn't copy `frame`
       // i.e it should begin at the parent's
       //     position
-      if (key === 'frame') continue
+      // if (key === 'n' || key === 'p') continue
 
       a[l][key] = a[r][key]
     }

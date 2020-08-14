@@ -22,15 +22,13 @@ const render = async (context) => {
 
   context.buffer
     .forEach((buffer, i) => buffer.set(mix.buffer[i]))
+
+  return context.buffer
 }
 
 const setup = async (url, context) => {
   self.url = url
-
-  self.fn = async c => [
-    // c => { c.buffer.forEach(b => b.fill(0)) },
-    (await import(self.url)).default
-  ]
+  self.fn = (await import(self.url)).default
 
   // test a render
   await render({

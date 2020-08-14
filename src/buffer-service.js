@@ -3,7 +3,7 @@ import Shared32Array from '../lib/shared-array-buffer.js'
 
 console.log('buffer service running')
 
-const GC_THRESHOLD = 2 * 1000
+const GC_THRESHOLD = 20 * 1000
 const GC_INTERVAL = 2 * 1000
 
 const buffers = new Map
@@ -22,17 +22,19 @@ const garbageCollect = match => {
 
 self.methods = {
   getBuffer: (checksum, size, channels = 2) => {
-    const id = checksum + size + channels
+    const id = (checksum + size + channels).toString()
     let buffer = buffers.get(id)
+    console.log(id + ' buffer found:', !!buffer)
+    setTimeout(garbageCollect, 5*1000)
     if (buffer) {
+      buffer.createdNow = false
       buffer.accessedAt = performance.now()
       return buffer
     }
-    buffer = {
-      accessedAt: performance.now(),
-      checksum,
-      buffer: Array.from(Array(channels), () => new Shared32Array(size))
-    }
+    buffer = Array.from(Array(channels), () => new Shared32Array(size))
+    buffer.createdNow = true
+    buffer.accessedAt = performance.now()
+    buffer.checksum = checksum
     buffers.set(id, buffer)
     return buffer
   },
@@ -40,4 +42,4 @@ self.methods = {
   clear: match => garbageCollect(match)
 }
 
-setInterval(garbageCollect, GC_INTERVAL)
+// setInterval(garbageCollect, GC_INTERVAL)

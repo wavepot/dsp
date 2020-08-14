@@ -21,7 +21,7 @@ export default class ShotNode {
   }
 
   get bufferSize () {
-    return this.sampleRate
+    return this.sampleRate/5
   }
 
   setBpm (bpm) {
