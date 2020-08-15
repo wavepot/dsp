@@ -204,7 +204,10 @@ export default class Context {
   // input[0]=L
   // input[1]=R if stereo, otherwise L
   get input () {
-    return this.buffer.map(buf => buf[this.p])
+    return [
+      this.buffer[0][this.p],
+      this.buffer[1]?.[this.p]??this.buffer[0][this.p]
+    ]
   }
 
   get x () {

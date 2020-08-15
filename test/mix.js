@@ -151,8 +151,8 @@ describe("mix(fn)", () => {
     const mix = Mix(context)
     const fn = async () => [
       c => +c.n,
-      c => c.input + 1,
-      c => c.input + 2
+      c => c.x + 1,
+      c => c.x + 2
     ]
     await mix(fn)
     expect(context.buffer[0]).to.be.buffer([3,4,5,6])
@@ -163,10 +163,10 @@ describe("mix(fn)", () => {
     const mix = Mix(context)
     const fn = async () => [
       c => +c.n,
-      c => c.input + 1,
+      c => c.x + 1,
       c => c(
-        c => c.input + 2,
-        c => c.input + 3
+        c => c.x + 2,
+        c => c.x + 3
       )
     ]
     await mix(fn)
@@ -178,10 +178,10 @@ describe("mix(fn)", () => {
     const mix = Mix(context)
     const fn = async () => [
       c => +c.n,
-      async () => c => c.input + 1,
+      async () => c => c.x + 1,
       c => c(
-        async () => c => c.input + 2,
-        c => c.input + 3
+        async () => c => c.x + 2,
+        c => c.x + 3
       )
     ]
     await mix(fn)
@@ -195,8 +195,8 @@ describe("mix(fn)", () => {
     const mix = Mix(context)
     const fn = async () => [
       c => +c.n,
-      c => c.input + 1,
-      c => c.input + 2
+      c => c.x + 1,
+      c => c.x + 2
     ]
     await mix(fn)
     expect(context.buffer[0]).to.be.buffer([1.5,2,2.5,3])
@@ -234,7 +234,7 @@ describe("mix(fn)", () => {
     const fn = async () => [
       c => +c.n,
       c => [c.input[0] + 1, c.input[1] + 1],
-      c => c.input + 2
+      c => c.x + 2
     ]
     await mix(fn)
     expect(context.buffer[0]).to.be.buffer([2,2.5,3,3.5])
@@ -247,7 +247,7 @@ describe("mix(fn)", () => {
     const fn = async () => [
       c => +c.n,
       c => [c.input[0] + 1, c.input[1] + 1],
-      c => c.input + 2
+      c => c.x + 2
     ]
     await mix(fn)
     expect(context.buffer[0]).to.be.buffer([3,4,5,6])
@@ -258,7 +258,7 @@ describe("mix(fn)", () => {
     const mix = Mix(context)
     const fn = async () => [
       c => +c.n,
-      async () => c => c.input + 1,
+      async () => c => c.x + 1,
       c => c(
         async c => {
           const buffer = [new Float32Array(2)]
@@ -267,9 +267,9 @@ describe("mix(fn)", () => {
             c => +c.p
           )
         },
-        c => c.input + 1
+        c => c.x + 1
       ),
-      c => c.input + 1
+      c => c.x + 1
     ]
     await mix(fn)
     expect(context.buffer[0]).to.be.buffer([3,5,5,7])
