@@ -123,7 +123,7 @@ export default class LoopNode {
     this.playing = false
     if (this.playingNode) {
       this.playingNode.onended = () => this._onended()
-      this.playingNode.stop()
+      this.playingNode.stop(syncTime)
     }
     if (this.scheduledNode) {
       this.scheduledNode.stop(0)
