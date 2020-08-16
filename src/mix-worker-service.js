@@ -21,7 +21,7 @@ export default mixWorker
 rpc.onfail = rpc.onerror = (error, url) => mixWorker.onerror?.(error, url)
 
 mixWorker.update = url => {
-  rpc(BUFFER_SERVICE_URL, 'clear', [url])
+  // rpc(BUFFER_SERVICE_URL, 'clear', [url])
   rpc.update(getRpcUrl(url))
 }
 mixWorker.clear = () => rpc.clearAll()
