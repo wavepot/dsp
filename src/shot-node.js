@@ -1,6 +1,7 @@
 export default class ShotNode {
-  constructor ({ numberOfChannels = 2 } = {}) {
+  constructor ({ numberOfChannels = 2, bpm = null } = {}) {
     this.numberOfChannels = numberOfChannels
+    if (bpm) this.setBpm(bpm)
   }
 
   get bpm () {

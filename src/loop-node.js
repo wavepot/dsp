@@ -1,8 +1,9 @@
 export default class LoopNode {
-  constructor ({ numberOfChannels = 2 } = {}) {
-    this.numberOfChannels = numberOfChannels
-    this.offsetTime = 0
+  constructor ({ bpm = null, numberOfChannels = 2 } = {}) {
     this.currentBufferIndex = 0
+    this.offsetTime = 0
+    this.numberOfChannels = numberOfChannels
+    if (bpm) this.setBpm(bpm)
   }
 
   get bpm () {
@@ -26,8 +27,19 @@ export default class LoopNode {
     return this.context.sampleRate
   }
 
+  get barTime () {
+    return this.bufferSize / this.sampleRate
+  }
+
+  get remainTime () {
+    const bar = this.barTime
+    const time = this.currentTime
+    const remain = bar - (time % bar)
+    return remain
+  }
+
   get syncTime () {
-    const bar = this.bufferSize / this.sampleRate
+    const bar = this.barTime
     const time = this.currentTime
     const remain = bar - (time % bar)
     return time + remain + this.offsetTime

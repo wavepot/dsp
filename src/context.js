@@ -4,7 +4,9 @@ import mixWorker from './mix-worker-service.js'
 import mixBuffers from './mix-buffers.js'
 import rpc from './lazy-singleton-worker-rpc.js'
 
-const BUFFER_SERVICE_URL = new URL('buffer-service.js', import.meta.url).href
+const BUFFER_SERVICE_URL = 'main:buffer-service'
+const SAMPLE_SERVICE_URL = 'main:sample-service'
+const GLOBAL_SERVICE_URL = 'main:global-service'
 
 const checksums = {}
 
@@ -105,12 +107,24 @@ export default class Context {
 
   // public api
 
-  async buf ({ id = '', len = this.buffer[0].length, ch = this.buffer.length } = {}) {
-    return (await rpc(BUFFER_SERVICE_URL, 'getBuffer', [
+  buf ({ id = '', len = this.buffer[0].length, ch = this.buffer.length } = {}) {
+    return rpc(BUFFER_SERVICE_URL, 'getBuffer', [
       id+checksumOf(this),
       len|0,
       ch|0
-    ]))
+    ])
+  }
+
+  get (id) {
+    return rpc(GLOBAL_SERVICE_URL, 'get', [id])
+  }
+
+  set (id, value) {
+    return rpc(GLOBAL_SERVICE_URL, 'set', [id, value])
+  }
+
+  sample (url) {
+    return rpc(SAMPLE_SERVICE_URL, 'fetchSample', [url])
   }
 
   zero (buffer = this.buffer) {

@@ -11,14 +11,14 @@ before(async () => {
   cache = window.__cache = new DynamicCache('test', { 'Content-Type': 'application/javascript' })
 })
 
-describe("mix = Mix(context)", () => {
+xdescribe("mix = Mix(context)", () => {
   it("returns a mix function", () => {
     const mix = Mix({})
     expect(mix).to.be.a('function')
   })
 })
 
-describe("mix(fn)", () => {
+xdescribe("mix(fn)", () => {
   it("renders fn into buffer", async () => {
     const context = { buffer: [new Float32Array(4)] }
     const mix = Mix(context)
@@ -281,347 +281,413 @@ describe("mix(fn)", () => {
 describe("mix('fn.js')", function () {
   this.timeout(10000)
 
-  it("render fn.js in a worker thread", async () => {
-    const context = { buffer: [new Shared32Array(4)] }
-    const code = `export default ({ n }) => n`
-    const url = await cache.put('ncount.js', code)
-    mixWorker.update(url)
-    const mix = Mix(context)
-    const fn = c => c.src(url)
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-  })
+  // it("render fn.js in a worker thread", async () => {
+  //   const context = { buffer: [new Shared32Array(4)] }
+  //   const code = `export default ({ n }) => n`
+  //   const url = await cache.put('ncount.js', code)
+  //   mixWorker.update(url)
+  //   const mix = Mix(context)
+  //   const fn = c => c.src(url)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+  // })
 
-  it("render fn.js in a worker thread, send buffer", async () => {
-    const context = { buffer: [new Shared32Array(4)] }
-    const code = `export default ({ n, x }) => n+x`
-    const url = await cache.put('ncount.js', code)
-    mixWorker.update(url)
-    const mix = Mix(context)
-    const fn = c => c.src(url)
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,2,4,6])
-  })
+  // it("render fn.js in a worker thread, send buffer", async () => {
+  //   const context = { buffer: [new Shared32Array(4)] }
+  //   const code = `export default ({ n, x }) => n+x`
+  //   const url = await cache.put('ncount.js', code)
+  //   mixWorker.update(url)
+  //   const mix = Mix(context)
+  //   const fn = c => c.src(url)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,2,4,6])
+  // })
 
-  it("to update dependency, main needs to update", async () => {
+  // it("to update dependency, main needs to update", async () => {
+  //   const context = { buffer: [new Shared32Array(4)] }
+  //   const code_a = `export default ({ n }) => n`
+  //   const code_b = `import a from './a.js'; export default ({ n }) => a({ n })`
+  //   const url_a = await cache.put('a.js', code_a)
+  //   const url_b = await cache.put('b.js', code_b)
+  //   mixWorker.update(url_a)
+  //   mixWorker.update(url_b)
+  //   const mix = Mix(context)
+  //   const fn = c => c.src(url_b)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+  //   await cache.put('a.js', `export default ({ n }) => n*10`)
+
+  //   mixWorker.update(url_a)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+
+  //   mixWorker.update(url_b)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,10,20,30])
+  // })
+
+  // it("async fn create closure once, even when n updates", async () => {
+  //   const context = { buffer: [new Shared32Array(4)] }
+  //   const code = `let x = 0; export default async c => {
+  //     x++
+  //     return ({ n }) => n + x
+  //   }`
+  //   const url = await cache.put('closure.js', code)
+  //   mixWorker.update(url)
+  //   const mix = Mix(context)
+  //   const fn = c => c.src(url)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([2,3,4,5]) // it runs once by "test"
+  //   await mix(fn, { n: 10 })
+  //   expect(context.buffer[0]).to.be.buffer([12,13,14,15])
+  // })
+
+  // /* error handling */
+
+  // it("start with syntax error, then correct", async () => {
+  //   const context = { buffer: [new Shared32Array(4)] }
+
+  //   const url = await cache.put('x.js', `syntax error`)
+  //   mixWorker.update(url)
+  //   const mix = Mix(context)
+  //   const fn = c => c.src(url)
+  //   let error
+
+  //   try {
+  //     await mix(fn)
+  //   } catch (err) { error = err }
+  //   expect(error.message).to.include('Unexpected')
+  //   expect(context.buffer[0]).to.be.buffer([0,0,0,0])
+
+  //   await cache.put('x.js', `export default ({ n }) => n`)
+  //   mixWorker.update(url)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+  // })
+
+  // it("start correct, then syntax error, then correct", async () => {
+  //   const context = { buffer: [new Shared32Array(4)] }
+
+  //   const url = await cache.put('x.js', `export default ({ n }) => n`)
+  //   mixWorker.update(url)
+  //   const mix = Mix(context)
+  //   const fn = c => c.src(url)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+
+  //   await cache.put('x.js', `syntax error`)
+  //   mixWorker.update(url)
+
+  //   let error
+  //   try {
+  //     await mix(fn)
+  //   } catch (err) { error = err }
+  //   expect(error.message).to.include('Unexpected')
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+
+  //   await cache.put('x.js', `export default ({ n }) => n*10`)
+  //   mixWorker.update(url)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,10,20,30])
+  // })
+
+  // it("start with runtime error, then correct", async () => {
+  //   const context = { buffer: [new Shared32Array(4)] }
+
+  //   const url = await cache.put('x.js', `export default ({ n }) => runtime`)
+  //   mixWorker.update(url)
+  //   const mix = Mix(context)
+  //   const fn = c => c.src(url)
+  //   let error
+
+  //   try {
+  //     await mix(fn)
+  //   } catch (err) { error = err }
+  //   expect(error.message).to.include('runtime is not defined')
+  //   expect(context.buffer[0]).to.be.buffer([0,0,0,0])
+
+  //   await cache.put('x.js', `export default ({ n }) => n`)
+  //   mixWorker.update(url)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+  // })
+
+  // it("start correct, then runtime error, then correct", async () => {
+  //   const context = { buffer: [new Shared32Array(4)] }
+
+  //   const url = await cache.put('x.js', `export default ({ n }) => n`)
+  //   mixWorker.update(url)
+  //   const mix = Mix(context)
+  //   const fn = c => c.src(url)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+
+  //   await cache.put('x.js', `export default ({ n }) => runtime`)
+  //   mixWorker.update(url)
+
+  //   let error
+  //   try {
+  //     await mix(fn)
+  //   } catch (err) { error = err }
+  //   expect(error.message).to.include('runtime is not defined')
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+
+  //   await cache.put('x.js', `export default ({ n }) => n*10`)
+  //   mixWorker.update(url)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,10,20,30])
+  // })
+
+  // /* error handling in src dependency */
+
+  // it("start with syntax error, then correct", async () => {
+  //   const context = { buffer: [new Shared32Array(4)] }
+
+  //   const url_a = await cache.put('a.js', `syntax error`)
+  //   const url_b = await cache.put('b.js', `export default c => c.src('./a.js')`)
+  //   mixWorker.update(url_a)
+  //   mixWorker.update(url_b)
+  //   const mix = Mix(context)
+  //   const fn = c => c.src(url_b)
+
+  //   let error
+
+  //   try {
+  //     await mix(fn)
+  //   } catch (err) { error = err }
+  //   expect(error.message).to.include('Unexpected')
+  //   expect(context.buffer[0]).to.be.buffer([0,0,0,0])
+
+  //   await cache.put('a.js', `export default ({ n }) => n`)
+  //   mixWorker.update(url_a)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+  // })
+
+  // it("start correct, then syntax error, then correct", async () => {
+  //   const context = { buffer: [new Shared32Array(4)] }
+
+  //   const url_a = await cache.put('a.js', `export default ({ n }) => n`)
+  //   const url_b = await cache.put('b.js', `export default c => c.src('./a.js')`)
+  //   mixWorker.update(url_a)
+  //   mixWorker.update(url_b)
+  //   const mix = Mix(context)
+  //   const fn = c => c.src(url_b)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+
+  //   await cache.put('a.js', `syntax error`)
+  //   mixWorker.update(url_a)
+
+  //   let error
+  //   try {
+  //     await mix(fn)
+  //   } catch (err) { error = err }
+  //   expect(error.message).to.include('Unexpected')
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+
+  //   await cache.put('a.js', `export default ({ n }) => n*10`)
+  //   mixWorker.update(url_a)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,10,20,30])
+  // })
+
+  // it("start with runtime error, then correct", async () => {
+  //   const context = { buffer: [new Shared32Array(4)] }
+
+  //   const url_a = await cache.put('a.js', `export default ({ n }) => runtime`)
+  //   const url_b = await cache.put('b.js', `export default c => c.src('./a.js')`)
+  //   mixWorker.update(url_a)
+  //   mixWorker.update(url_b)
+  //   const mix = Mix(context)
+  //   const fn = c => c.src(url_b)
+
+  //   let error
+
+  //   try {
+  //     await mix(fn)
+  //   } catch (err) { error = err }
+  //   expect(error.message).to.include('runtime is not defined')
+  //   expect(context.buffer[0]).to.be.buffer([0,0,0,0])
+
+  //   await cache.put('a.js', `export default ({ n }) => n`)
+  //   mixWorker.update(url_a)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+  // })
+
+  // it("start correct, then runtime error, then correct", async () => {
+  //   const context = { buffer: [new Shared32Array(4)] }
+
+  //   const url_a = await cache.put('a.js', `export default ({ n }) => n`)
+  //   const url_b = await cache.put('b.js', `export default c => c.src('./a.js')`)
+  //   mixWorker.update(url_a)
+  //   mixWorker.update(url_b)
+  //   const mix = Mix(context)
+  //   const fn = c => c.src(url_b)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+
+  //   await cache.put('a.js', `export default ({ n }) => runtime`)
+  //   mixWorker.update(url_a)
+
+  //   let error
+  //   try {
+  //     await mix(fn)
+  //   } catch (err) { error = err }
+  //   expect(error.message).to.include('runtime is not defined')
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+
+  //   await cache.put('a.js', `export default ({ n }) => n*10`)
+  //   mixWorker.update(url_a)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,10,20,30])
+  // })
+
+  // /* infinity/NaN errors */
+
+  // it("start with NaN error, then correct", async () => {
+  //   const context = { buffer: [new Shared32Array(4)] }
+
+  //   const url = await cache.put('x.js', `export default c => NaN`)
+  //   mixWorker.update(url)
+  //   const mix = Mix(context)
+  //   const fn = c => c.src(url)
+
+  //   let error
+
+  //   try {
+  //     await mix(fn)
+  //   } catch (err) { error = err }
+  //   expect(error.message).to.include('Not a finite number value: NaN')
+  //   expect(context.buffer[0]).to.be.buffer([0,0,0,0])
+
+  //   await cache.put('x.js', `export default ({ n }) => n`)
+  //   mixWorker.update(url)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+  // })
+
+  // it("start with dependency NaN error, then correct", async () => {
+  //   const context = { buffer: [new Shared32Array(4)] }
+
+  //   const url_a = await cache.put('a.js', `export default ({ n }) => NaN`)
+  //   const url_b = await cache.put('b.js', `export default c => c.src('./a.js')`)
+  //   mixWorker.update(url_a)
+  //   mixWorker.update(url_b)
+  //   const mix = Mix(context)
+  //   const fn = c => c.src(url_b)
+
+  //   let error
+
+  //   try {
+  //     await mix(fn)
+  //   } catch (err) { error = err }
+  //   expect(error.message).to.include('Not a finite number value: NaN')
+  //   expect(context.buffer[0]).to.be.buffer([0,0,0,0])
+
+  //   await cache.put('a.js', `export default ({ n }) => n`)
+  //   mixWorker.update(url_a)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+  // })
+
+  // it("start correct, then NaN error, then correct", async () => {
+  //   const context = { buffer: [new Shared32Array(4)] }
+
+  //   const url_a = await cache.put('a.js', `export default ({ n }) => n`)
+  //   const url_b = await cache.put('b.js', `export default c => c.src('./a.js')`)
+  //   mixWorker.update(url_a)
+  //   mixWorker.update(url_b)
+  //   const mix = Mix(context)
+  //   const fn = c => c.src(url_b)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+
+  //   await cache.put('a.js', `export default ({ n }) => NaN`)
+  //   mixWorker.update(url_a)
+
+  //   let error
+
+  //   try {
+  //     await mix(fn)
+  //   } catch (err) { error = err }
+  //   expect(error.message).to.include('Not a finite number value: NaN')
+  //   expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+
+  //   await cache.put('a.js', `export default ({ n }) => n*10`)
+  //   mixWorker.update(url_a)
+  //   await mix(fn)
+  //   expect(context.buffer[0]).to.be.buffer([0,10,20,30])
+  // })
+
+  it("propagate context into src", async () => {
     const context = { buffer: [new Shared32Array(4)] }
-    const code_a = `export default ({ n }) => n`
-    const code_b = `import a from './a.js'; export default ({ n }) => a({ n })`
-    const url_a = await cache.put('a.js', code_a)
-    const url_b = await cache.put('b.js', code_b)
+
+    const url_a = await cache.put('a.js', `export default ({ z }) => z`)
+    const url_b = await cache.put('b.js', `export default c => c.src('./a.js',{z:5})`)
     mixWorker.update(url_a)
     mixWorker.update(url_b)
     const mix = Mix(context)
     const fn = c => c.src(url_b)
     await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-    await cache.put('a.js', `export default ({ n }) => n*10`)
-
-    mixWorker.update(url_a)
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-
-    mixWorker.update(url_b)
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,10,20,30])
+    expect(context.buffer[0]).to.be.buffer([5,5,5,5])
   })
 
-  it("async fn create closure once, even when n updates", async () => {
-    const context = { buffer: [new Shared32Array(4)] }
-    const code = `let x = 0; export default async c => {
-      x++
-      return ({ n }) => n + x
-    }`
-    const url = await cache.put('closure.js', code)
-    mixWorker.update(url)
-    const mix = Mix(context)
-    const fn = c => c.src(url)
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([2,3,4,5]) // it runs once by "test"
-    await mix(fn, { n: 10 })
-    expect(context.buffer[0]).to.be.buffer([12,13,14,15])
-  })
-
-  /* error handling */
-
-  it("start with syntax error, then correct", async () => {
+  it("propagate context into async src", async () => {
     const context = { buffer: [new Shared32Array(4)] }
 
-    const url = await cache.put('x.js', `syntax error`)
-    mixWorker.update(url)
-    const mix = Mix(context)
-    const fn = c => c.src(url)
-    let error
-
-    try {
-      await mix(fn)
-    } catch (err) { error = err }
-    expect(error.message).to.include('Unexpected')
-    expect(context.buffer[0]).to.be.buffer([0,0,0,0])
-
-    await cache.put('x.js', `export default ({ n }) => n`)
-    mixWorker.update(url)
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-  })
-
-  it("start correct, then syntax error, then correct", async () => {
-    const context = { buffer: [new Shared32Array(4)] }
-
-    const url = await cache.put('x.js', `export default ({ n }) => n`)
-    mixWorker.update(url)
-    const mix = Mix(context)
-    const fn = c => c.src(url)
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-
-    await cache.put('x.js', `syntax error`)
-    mixWorker.update(url)
-
-    let error
-    try {
-      await mix(fn)
-    } catch (err) { error = err }
-    expect(error.message).to.include('Unexpected')
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-
-    await cache.put('x.js', `export default ({ n }) => n*10`)
-    mixWorker.update(url)
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,10,20,30])
-  })
-
-  it("start with runtime error, then correct", async () => {
-    const context = { buffer: [new Shared32Array(4)] }
-
-    const url = await cache.put('x.js', `export default ({ n }) => runtime`)
-    mixWorker.update(url)
-    const mix = Mix(context)
-    const fn = c => c.src(url)
-    let error
-
-    try {
-      await mix(fn)
-    } catch (err) { error = err }
-    expect(error.message).to.include('runtime is not defined')
-    expect(context.buffer[0]).to.be.buffer([0,0,0,0])
-
-    await cache.put('x.js', `export default ({ n }) => n`)
-    mixWorker.update(url)
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-  })
-
-  it("start correct, then runtime error, then correct", async () => {
-    const context = { buffer: [new Shared32Array(4)] }
-
-    const url = await cache.put('x.js', `export default ({ n }) => n`)
-    mixWorker.update(url)
-    const mix = Mix(context)
-    const fn = c => c.src(url)
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-
-    await cache.put('x.js', `export default ({ n }) => runtime`)
-    mixWorker.update(url)
-
-    let error
-    try {
-      await mix(fn)
-    } catch (err) { error = err }
-    expect(error.message).to.include('runtime is not defined')
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-
-    await cache.put('x.js', `export default ({ n }) => n*10`)
-    mixWorker.update(url)
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,10,20,30])
-  })
-
-  /* error handling in src dependency */
-
-  it("start with syntax error, then correct", async () => {
-    const context = { buffer: [new Shared32Array(4)] }
-
-    const url_a = await cache.put('a.js', `syntax error`)
-    const url_b = await cache.put('b.js', `export default c => c.src('./a.js')`)
-    mixWorker.update(url_a)
-    mixWorker.update(url_b)
-    const mix = Mix(context)
-    const fn = c => c.src(url_b)
-
-    let error
-
-    try {
-      await mix(fn)
-    } catch (err) { error = err }
-    expect(error.message).to.include('Unexpected')
-    expect(context.buffer[0]).to.be.buffer([0,0,0,0])
-
-    await cache.put('a.js', `export default ({ n }) => n`)
-    mixWorker.update(url_a)
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-  })
-
-  it("start correct, then syntax error, then correct", async () => {
-    const context = { buffer: [new Shared32Array(4)] }
-
-    const url_a = await cache.put('a.js', `export default ({ n }) => n`)
-    const url_b = await cache.put('b.js', `export default c => c.src('./a.js')`)
+    const url_a = await cache.put('a.js', `export default async c => ({ z }) => z`)
+    const url_b = await cache.put('b.js', `export default c => c.src('./a.js',{z:5})`)
     mixWorker.update(url_a)
     mixWorker.update(url_b)
     const mix = Mix(context)
     const fn = c => c.src(url_b)
     await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-
-    await cache.put('a.js', `syntax error`)
-    mixWorker.update(url_a)
-
-    let error
-    try {
-      await mix(fn)
-    } catch (err) { error = err }
-    expect(error.message).to.include('Unexpected')
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-
-    await cache.put('a.js', `export default ({ n }) => n*10`)
-    mixWorker.update(url_a)
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,10,20,30])
+    expect(context.buffer[0]).to.be.buffer([5,5,5,5])
   })
 
-  it("start with runtime error, then correct", async () => {
+  it("propagate context into async src params", async () => {
     const context = { buffer: [new Shared32Array(4)] }
 
-    const url_a = await cache.put('a.js', `export default ({ n }) => runtime`)
-    const url_b = await cache.put('b.js', `export default c => c.src('./a.js')`)
-    mixWorker.update(url_a)
-    mixWorker.update(url_b)
-    const mix = Mix(context)
-    const fn = c => c.src(url_b)
-
-    let error
-
-    try {
-      await mix(fn)
-    } catch (err) { error = err }
-    expect(error.message).to.include('runtime is not defined')
-    expect(context.buffer[0]).to.be.buffer([0,0,0,0])
-
-    await cache.put('a.js', `export default ({ n }) => n`)
-    mixWorker.update(url_a)
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-  })
-
-  it("start correct, then runtime error, then correct", async () => {
-    const context = { buffer: [new Shared32Array(4)] }
-
-    const url_a = await cache.put('a.js', `export default ({ n }) => n`)
-    const url_b = await cache.put('b.js', `export default c => c.src('./a.js')`)
+    const url_a = await cache.put('a.js', `export default async c => (c, { z }) => z`)
+    const url_b = await cache.put('b.js', `export default c => c.src('./a.js',{z:5})`)
     mixWorker.update(url_a)
     mixWorker.update(url_b)
     const mix = Mix(context)
     const fn = c => c.src(url_b)
     await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-
-    await cache.put('a.js', `export default ({ n }) => runtime`)
-    mixWorker.update(url_a)
-
-    let error
-    try {
-      await mix(fn)
-    } catch (err) { error = err }
-    expect(error.message).to.include('runtime is not defined')
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-
-    await cache.put('a.js', `export default ({ n }) => n*10`)
-    mixWorker.update(url_a)
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,10,20,30])
+    expect(context.buffer[0]).to.be.buffer([5,5,5,5])
   })
 
-  /* infinity/NaN errors */
-
-  it("start with NaN error, then correct", async () => {
+  it("propagate async context into async src params", async () => {
     const context = { buffer: [new Shared32Array(4)] }
 
-    const url = await cache.put('x.js', `export default c => NaN`)
-    mixWorker.update(url)
-    const mix = Mix(context)
-    const fn = c => c.src(url)
-
-    let error
-
-    try {
-      await mix(fn)
-    } catch (err) { error = err }
-    expect(error.message).to.include('Not a finite number value: NaN')
-    expect(context.buffer[0]).to.be.buffer([0,0,0,0])
-
-    await cache.put('x.js', `export default ({ n }) => n`)
-    mixWorker.update(url)
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-  })
-
-  it("start with dependency NaN error, then correct", async () => {
-    const context = { buffer: [new Shared32Array(4)] }
-
-    const url_a = await cache.put('a.js', `export default ({ n }) => NaN`)
-    const url_b = await cache.put('b.js', `export default c => c.src('./a.js')`)
-    mixWorker.update(url_a)
-    mixWorker.update(url_b)
-    const mix = Mix(context)
-    const fn = c => c.src(url_b)
-
-    let error
-
-    try {
-      await mix(fn)
-    } catch (err) { error = err }
-    expect(error.message).to.include('Not a finite number value: NaN')
-    expect(context.buffer[0]).to.be.buffer([0,0,0,0])
-
-    await cache.put('a.js', `export default ({ n }) => n`)
-    mixWorker.update(url_a)
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-  })
-
-  it("start correct, then NaN error, then correct", async () => {
-    const context = { buffer: [new Shared32Array(4)] }
-
-    const url_a = await cache.put('a.js', `export default ({ n }) => n`)
-    const url_b = await cache.put('b.js', `export default c => c.src('./a.js')`)
+    const url_a = await cache.put('a.js', `export default async c => (c, { z }) => z`)
+    const url_b = await cache.put('b.js', `export default async c => { await c.src('./a.js',{z:5}); return c => c.buffer }`)
     mixWorker.update(url_a)
     mixWorker.update(url_b)
     const mix = Mix(context)
     const fn = c => c.src(url_b)
     await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-
-    await cache.put('a.js', `export default ({ n }) => NaN`)
-    mixWorker.update(url_a)
-
-    let error
-
-    try {
-      await mix(fn)
-    } catch (err) { error = err }
-    expect(error.message).to.include('Not a finite number value: NaN')
-    expect(context.buffer[0]).to.be.buffer([0,1,2,3])
-
-    await cache.put('a.js', `export default ({ n }) => n*10`)
-    mixWorker.update(url_a)
-    await mix(fn)
-    expect(context.buffer[0]).to.be.buffer([0,10,20,30])
+    expect(context.buffer[0]).to.be.buffer([5,5,5,5])
   })
+
+  it("propagate async context into async src params with defaults", async () => {
+    const context = { buffer: [new Shared32Array(4)] }
+
+    const url_a = await cache.put('a.js', `export default async c => (c, { z = 10 }) => z`)
+    const url_b = await cache.put('b.js', `export default async c => { await c.src('./a.js',{z:5}); return c => c.buffer }`)
+    mixWorker.update(url_a)
+    mixWorker.update(url_b)
+    const mix = Mix(context)
+    const fn = c => c.src(url_b)
+    await mix(fn)
+    expect(context.buffer[0]).to.be.buffer([5,5,5,5])
+  })
+
 
 })
   // it("render fn.js in a worker thread, alternate", async () => {

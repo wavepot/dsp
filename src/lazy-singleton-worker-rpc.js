@@ -21,7 +21,16 @@ export default rpc
 class Rpc {
   constructor (url) {
     this.url = url
-    this.worker = new SafeDynamicWorker(url)
+
+    // here we distinguish between RPC instances
+    // that run in Workers and RPC instances in the
+    // main thread that interface as RPC workers
+    if (new URL(url).protocol === 'main:') {
+      this.worker = window[url].worker
+    } else {
+      this.worker = new SafeDynamicWorker(url)
+    }
+
     this.worker.onmessage = ({ data }) => {
       if (!data.call) return
       if (!(data.call in this)) {
