@@ -95,6 +95,33 @@ describe("LoopPlayer.start() : AudioContext", function () {
     expect(result).to.be.buffer(expected)
   })
 
+  it("play promise fn then set new fn", async () => {
+    const fn = c => new Promise(r => {
+      c.buffer[0].fill(1)
+      setTimeout(r,1)
+    })
+    const player = new LoopPlayer(fn, opts)
+    player.connect(recorder)
+    player.start()
+    let bars = 0
+    player.onbar = () => {
+      player.fn = c => new Promise(r => {
+        c.buffer[0].fill(2)
+        setTimeout(r,1)
+      })
+      if (bars++ === 8) {
+        player.stop(0)
+        player.onbar = null
+      }
+    }
+    const result = await record()
+    const expected = [
+      1,1,1,1, 2,2,2,2, 2,2,2,2, 2,2,2,2,
+      2,2,2,2, 2,2,2,2, 2,2,2,2, 2,2,2,2,
+    ]
+    expect(result).to.be.buffer(expected)
+  })
+
   it("play src", async () => {
     const code = `export default c => Math.ceil(c.n1/c.beatRate)`
     const url = await cache.put('a.js', code)
@@ -192,11 +219,11 @@ describe("LoopPlayer.start() : AudioContext", function () {
     player.start()
     player.onbar = async () => {
       await cache.put('a.js', `export default c => 1+Math.ceil(c.n1/c.beatRate)`)
+      mixWorker.update(url)
       setTimeout(async () => {
         await cache.put('a.js', `export default c => 2+Math.ceil(c.n1/c.beatRate)`)
         mixWorker.update(url)
       }, 1)
-      mixWorker.update(url)
       player.onbar = null
     }
     const result = await record()
@@ -207,6 +234,124 @@ describe("LoopPlayer.start() : AudioContext", function () {
     expect(result).to.be.buffer(expected)
     player.stop(0)
   })
+
+  it("play promise src, then update twice, keep correct n", async () => {
+    const code = `export default c =>
+      new Promise(r => {
+        c.buffer[0].fill(Math.ceil(c.n1/c.beatRate))
+        setTimeout(r,1)
+      })`
+    const url = await cache.put('a.js', code)
+    mixWorker.update(url)
+    const fn = c => c.src(url)
+    const player = new LoopPlayer(fn, opts)
+    player.connect(recorder)
+    player.start()
+    player.onbar = async () => {
+      await cache.put('a.js', `export default c =>
+        new Promise(r => {
+          c.buffer[0].fill(10+Math.ceil(c.n1/c.beatRate))
+          setTimeout(r,1)
+        })`)
+      mixWorker.update(url)
+      setTimeout(async () => {
+        await cache.put('a.js', `export default c =>
+          new Promise(r => {
+            c.buffer[0].fill(20+Math.ceil(c.n1/c.beatRate))
+            setTimeout(r,1)
+          })`)
+        mixWorker.update(url)
+      }, 150)
+      player.onbar = null
+    }
+    const result = await record()
+    const expected = [
+      1,1,1,1,     15,15,15,15, 29,29,29,29, 29,29,29,29,
+      29,29,29,29, 29,29,29,29, 29,29,29,29, 29,29,29,29,
+    ]
+    expect(result).to.be.buffer(expected)
+    player.stop(0)
+  })
+
+  xit("??? play promise src, then update slow twice, keep correct n", async () => {
+    const code = `export default c =>
+      new Promise(r => {
+        c.buffer[0].fill(Math.ceil(c.n1/c.beatRate))
+        setTimeout(r,1)
+      })`
+    const url = await cache.put('a.js', code)
+    mixWorker.update(url)
+    const fn = c => c.src(url)
+    const player = new LoopPlayer(fn, opts)
+    player.connect(recorder)
+    player.start()
+    player.onbar = async () => {
+      await cache.put('a.js', `export default c =>
+        new Promise(r => {
+          c.buffer[0].fill(10+Math.ceil(c.n1/c.beatRate))
+          setTimeout(r,150)
+        })`)
+      mixWorker.update(url)
+      setTimeout(async () => {
+        await cache.put('a.js', `export default c =>
+          new Promise(r => {
+            c.buffer[0].fill(20+Math.ceil(c.n1/c.beatRate))
+            setTimeout(r,1)
+          })`)
+        mixWorker.update(url)
+      }, 150)
+      player.onbar = null
+    }
+    const result = await record()
+    const expected = [
+      1,1,1,1,     15,15,15,15, 29,29,29,29, 29,29,29,29,
+      29,29,29,29, 29,29,29,29, 29,29,29,29, 29,29,29,29,
+    ]
+    player.stop(0)
+    expect(result).to.be.buffer(expected)
+  })
+
+  it.only("play promise src, update and discard slow, update, keep correct n", async () => {
+    const code = `export default c =>
+      new Promise(r => {
+        c.buffer[0].fill(Math.ceil(c.n1/c.beatRate))
+        setTimeout(r,1)
+      })`
+    const url = await cache.put('a.js', code)
+    mixWorker.update(url)
+    const fn = c => c.src(url)
+    const player = new LoopPlayer(fn, opts)
+    player.connect(recorder)
+    player.start()
+    player.onbar = async () => {
+      await cache.put('a.js', `export default c =>
+        new Promise(r => {
+          c.buffer[0].fill(10+Math.ceil(c.n1/c.beatRate))
+          setTimeout(r,150)
+        })`)
+      mixWorker.update(url)
+      setTimeout(async () => {
+        await cache.put('a.js', `export default c =>
+          new Promise(r => {
+            c.buffer[0].fill(20+Math.ceil(c.n1/c.beatRate))
+            setTimeout(r,1)
+          })`)
+        mixWorker.update(url)
+        player.render()
+      }, 200)
+      player.onbar = null
+      player.render()
+    }
+    const result = await record()
+    const expected = [
+      1,1,1,1,     1,1,1,1,     1,1,1,1,     33,33,33,33,
+      37,37,37,37, 41,41,41,41, 45,45,45,45, 49,49,49,49
+    ]
+    player.stop(0)
+    expect(result).to.be.buffer(expected)
+  })
+
+
 })
 //   it("play buffer then set new buffer, then new buffer again", async () => {
 //     player.playBuffer([new Float32Array(9216).fill(1)])

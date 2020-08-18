@@ -16,6 +16,8 @@ export default ({
     const context = { ...parent, parent }
 
     const fn = atomic(async (...args) => {
+      if (parent === top) mergeDown(fn, ...args)
+
       const fns = args
         .filter(arg => typeof arg === 'function')
         .map(_fn => [

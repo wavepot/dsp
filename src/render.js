@@ -14,7 +14,18 @@ export default async (fn, context) => {
   // context.prepare()
   // context.tick()
 
-  const result = await fn(context, context, context)
+  let result
+  if (fn.constructor.name === 'AsyncFunction') {
+    result = await fn(context, context, context)
+  } else {
+    result = fn(context, context, context)
+  }
+  if (result instanceof Promise) {
+    await result
+    context.tickBar()
+    return
+  }
+
 // console.log('N IS', context.n)
   if (typeof result === 'object' && '0' in result && typeof result[0] === 'number') {
     if (numOfChannels === 1) {

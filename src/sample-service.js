@@ -26,7 +26,7 @@ export default audio => {
         }
 
         return sample
-      },
+      }
     },
     postMessage (data) {
       SampleService.worker.onmessage({ data })

@@ -119,8 +119,8 @@ export default class Context {
     return rpc(GLOBAL_SERVICE_URL, 'get', [id])
   }
 
-  set (id, value) {
-    return rpc(GLOBAL_SERVICE_URL, 'set', [id, value])
+  set (id, value, ttl) {
+    return rpc(GLOBAL_SERVICE_URL, 'set', [id, value, ttl])
   }
 
   sample (url) {
@@ -162,20 +162,24 @@ export default class Context {
     this.n = this.n ?? 0
     this.p = 0
 
-    this.n1 = this.n+1
-    this.p1 = this.p+1
-
-    this.s = this.n1 / this.sr
-    this.b = this.n1 / this.br
-
-    this.t = this.p1 / this.sr
-    this.k = this.p1 / this.br
+    this.update()
   }
 
   tick () {
     this.n = ++this.n
     this.p = ++this.p
 
+    this.update()
+  }
+
+  tickBar () {
+    this.n += this.buffer[0].length
+    this.p += this.buffer[0].length
+
+    this.update()
+  }
+
+  update () {
     this.n1 = this.n+1
     this.p1 = this.p+1
 

@@ -11,14 +11,14 @@ before(async () => {
   cache = window.__cache = new DynamicCache('test', { 'Content-Type': 'application/javascript' })
 })
 
-xdescribe("mix = Mix(context)", () => {
+describe("mix = Mix(context)", () => {
   it("returns a mix function", () => {
     const mix = Mix({})
     expect(mix).to.be.a('function')
   })
 })
 
-xdescribe("mix(fn)", () => {
+describe("mix(fn)", () => {
   it("renders fn into buffer", async () => {
     const context = { buffer: [new Float32Array(4)] }
     const mix = Mix(context)
@@ -35,6 +35,14 @@ xdescribe("mix(fn)", () => {
     expect(context.buffer[0]).to.be.buffer([0,1,2,3])
     await mix(fn)
     expect(context.buffer[0]).to.be.buffer([0,1,2,3])
+  })
+
+  it("write context to top", async () => {
+    const context = { buffer: [new Float32Array(4)] }
+    const mix = Mix(context)
+    const fn = ({ n }) => n
+    await mix(fn, { n: 2 })
+    expect(mix.n).to.equal(2)
   })
 
   it("fn accept additional context data", async () => {

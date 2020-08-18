@@ -5,6 +5,8 @@ import mixWorker from './mix-worker-service.js'
 import Shared32Array from '../lib/shared-array-buffer.js'
 import './global-service.js'
 
+mixWorker.queueUpdates = true
+
 export default class LoopPlayer {
   constructor (fn, { numberOfChannels = 2, bpm = 125 } = {}) {
     this.fn = fn
@@ -12,11 +14,18 @@ export default class LoopPlayer {
     this.numberOfChannels = numberOfChannels
     this.node = new LoopNode({ numberOfChannels, bpm })
     this.node.onbar = () => {
-      this.onbar?.()
-      this.render()
+      this.context.n += this.buffer[0].length
+
+      if (this.onbar) {
+        ;(async () => {
+          await this.onbar()
+          this.render()
+        })()
+      } else {
+        this.render()
+      }
     }
     this.playing = false
-    this.nextNToPlay = 0
     this.render = atomic(
       (...args) => this._render(...args), {
         recentOnly: true,
@@ -44,19 +53,32 @@ export default class LoopPlayer {
     mixWorker.flushUpdates()
 
     const time = performance.now()
-    const n = this.context.n
+
+    let n = this.context.n
+
+    if (this.node.remainTime < this.avgRenderTime) {
+      console.warn('not enough time, trying for next buffer:', this.node.remainTime, this.avgRenderTime)
+      n += this.buffer[0].length
+    }
+    // console.log(this.node.remainTime)
 
     console.log('will render:', n)
     try {
       await this.mix(this.fn, { n })
+      console.log('return mix n:', this.mix.n)
     } catch (error) {
       this.onerror?.(error)
       console.error(error)
       return
     }
 
-    if (n !== this.nextNToPlay) {
-      console.warn('too late, discard:', n, this.nextNToPlay)
+    // if (this.context.n) {
+    //   console.warn('too late, discard:', n, this.context.n)
+    //   return
+    // }
+
+    if (this.mix.n < this.context.n) {
+      console.warn('too late, discard:', this.mix.n, this.context.n)
       return
     }
 
@@ -69,14 +91,19 @@ export default class LoopPlayer {
     console.log('time to render:', diff)
     if (diff > 1000) console.warn('too slow!', (diff/1000).toFixed(1) + 's' )
 
+    this.maxRenderTime = Math.max(diff/1000, this.maxRenderTime)
+    if (this.avgRenderTime === -1) {
+      this.avgRenderTime = diff/1000
+    } else {
+      this.avgRenderTime = (diff/1000 + this.avgRenderTime) / 2
+    }
+    // this.avgRenderTime = Math.max(diff/1000, this.maxRenderTime)
+
     console.log('will play:', n)
     if (first) {
       // this.node.resetTime?.(-3)
       this.node.start()
     }
-
-    this.context.n += this.buffer[0].length
-    this.nextNToPlay = this.context.n
 
     this.node.playBuffer(this.buffer)
 
@@ -84,6 +111,8 @@ export default class LoopPlayer {
   }
 
   start () {
+    this.maxRenderTime = 0
+    this.avgRenderTime = -1
     this.playing = true
     this.render({ first: true })
   }
