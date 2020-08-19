@@ -42,6 +42,9 @@ const setup = async (url, context) => {
   })
 
   self.hasSetup = true
+  self.methods.render = atomic(async (url, context) => {
+    return render(context)
+  })
 }
 
 self.methods = {
@@ -50,5 +53,5 @@ self.methods = {
       await setup(url, context)
     }
     return render(context)
-  })
+  }, { timeout: 60000 })
 }
