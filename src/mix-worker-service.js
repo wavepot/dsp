@@ -9,7 +9,7 @@ const BUFFER_SERVICE_URL = 'main:buffer-service' //new URL('buffer-service.js', 
 const mixWorker = (url, context) => {
   const rpcUrl = getRpcUrl(url)
   return Promise.race([
-    new Promise((resolve, reject) => setTimeout(reject, 5000, new Error('mixWorker: Timed out'))),
+    new Promise((resolve, reject) => setTimeout(reject, 30000, new Error('mixWorker: Timed out'))),
     rpc(rpcUrl, 'render', [url, context.toJSON?.() ?? context]).then(result => {
       if (isMain) rpc.markAsSafe(rpcUrl)
       return result
