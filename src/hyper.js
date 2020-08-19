@@ -16,6 +16,8 @@ export default ({
     const context = { ...parent, parent }
 
     const fn = atomic(async (...args) => {
+      fn.setTimeout(5000)
+
       if (parent === top) mergeDown(fn, ...args)
 
       const fns = args
@@ -55,7 +57,7 @@ export default ({
       }
 
       mergeUp(fn, lastSiblingHyperFn)
-    }, { recentOnly: true })
+    }, { recentOnly: true, timeout: 60000 })
 
     Object.defineProperties(fn, desc)
     mergeDown(fn, context)
