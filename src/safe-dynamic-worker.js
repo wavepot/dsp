@@ -23,14 +23,32 @@ export default class SafeDynamicWorker {
   }
 
   markAsSafe () {
+    const prevSafe = this.safe
     this.safe = this.worker
+    if (prevSafe && prevSafe !== this.safe) {
+      setTimeout(() => {
+        try {
+          console.warn('safe: terminating previous safe worker')
+          prevSafe.terminate()
+        } catch (error) {
+          console.error(error)
+        }
+      // give some time to finish operations
+      // before forcefully terminating
+      }, 5000)
+    }
   }
 
   reviveSafe (err) {
     if (this.worker && this.worker.state !== 'failed') {
       this.worker.state = 'failed'
       this.unbindListeners()
-      try { this.worker.terminate() } catch {}
+      try {
+        console.log('failed: terminating worker')
+        this.worker.terminate()
+      } catch (error) {
+        console.error(error)
+      }
       this.worker = null
     }
     if (this.safe && this.worker !== this.safe && this.safe.state !== 'failed') {
@@ -62,7 +80,12 @@ export default class SafeDynamicWorker {
     if (this.worker) {
       this.unbindListeners()
       if (this.worker !== this.safe) {
-        try { this.worker.terminate() } catch {}
+        try {
+          console.log('update: terminating previous worker')
+          this.worker.terminate()
+        } catch (error) {
+          console.error(error)
+        }
       }
     }
     this.worker = new Worker(this.url, { type: 'module' })

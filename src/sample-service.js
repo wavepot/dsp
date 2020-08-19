@@ -7,7 +7,11 @@ export default audio => {
   const SampleService = {
     methods: {
       fetchSample: async url => {
-        url = new URL(url, location.href).href
+        if (url[0] !== '/') {
+          url = location.origin + '/fetch?url=' + encodeURIComponent(url)
+        } else {
+          url = new URL(url, location.href).href
+        }
 
         let sample = samples.get(url)
 

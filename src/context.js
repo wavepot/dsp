@@ -1,5 +1,6 @@
 import randomId from '../lib/random-id.js'
 import checksumOf from '../lib/checksum.js'
+import ImpulseReverb from '../lib/impulse-reverb.js'
 import mixWorker from './mix-worker-service.js'
 import mixBuffers from './mix-buffers.js'
 import rpc from './lazy-singleton-worker-rpc.js'
@@ -125,6 +126,10 @@ export default class Context {
 
   sample (url) {
     return rpc(SAMPLE_SERVICE_URL, 'fetchSample', [url])
+  }
+
+  reverb (params) {
+    return ImpulseReverb(this, params)
   }
 
   zero (buffer = this.buffer) {

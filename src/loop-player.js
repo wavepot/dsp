@@ -26,10 +26,17 @@ export default class LoopPlayer {
       }
     }
     this.playing = false
+
     this.render = atomic(
       (...args) => this._render(...args), {
         recentOnly: true,
         timeout: 5000
+      })
+
+    this.renderInitial = atomic(
+      (...args) => this._render(...args), {
+        recentOnly: true,
+        timeout: 60000
       })
   }
 
@@ -47,7 +54,7 @@ export default class LoopPlayer {
     this.mix = Mix(this.context)
   }
 
-  async _render ({ first = false } = {}) {
+  async _render ({ initial = false } = {}) {
     if (!this.playing) return
 
     mixWorker.flushUpdates()
@@ -100,7 +107,7 @@ export default class LoopPlayer {
     // this.avgRenderTime = Math.max(diff/1000, this.maxRenderTime)
 
     console.log('will play:', n)
-    if (first) {
+    if (initial) {
       // this.node.resetTime?.(-3)
       this.node.start()
     }
@@ -114,7 +121,7 @@ export default class LoopPlayer {
     this.maxRenderTime = 0
     this.avgRenderTime = -1
     this.playing = true
-    this.render({ first: true })
+    this.renderInitial({ initial: true })
   }
 
   stop (syncTime) {

@@ -16,6 +16,9 @@ rpc.clear = () => rpcs.clear()
 rpc.clearHanging = error => { [...callbacks.values()].forEach(fn => fn.reject(error)), callbacks.clear() }
 rpc.clearAll = () => (rpc.clear(), rpc.clearHanging())
 
+const workers = self.workers ?? new Map
+if (!isMain) self.workers = workers
+
 export default rpc
 
 class Rpc {
@@ -28,19 +31,22 @@ class Rpc {
     if (new URL(url).protocol === 'main:') {
       this.worker = window[url].worker
     } else {
-      this.worker = new SafeDynamicWorker(url)
-    }
-
-    this.worker.onmessage = ({ data }) => {
-      if (!data.call) return
-      if (!(data.call in this)) {
-        throw new ReferenceError('Rpc receive method not found: ' + data.call)
+      this.worker = workers.get(url)
+      if (!this.worker) {
+        this.worker = new SafeDynamicWorker(url)
+        workers.set(url, this.worker)
+        this.worker.onmessage = ({ data }) => {
+          if (!data.call) return
+          if (!(data.call in this)) {
+            throw new ReferenceError('Rpc receive method not found: ' + data.call)
+          }
+          this[data.call](data)
+        }
+        this.worker.onmessageerror = error => rpc.onmessageerror?.(error, url)
+        this.worker.onerror = error => rpc.onerror?.(error, url)
+        this.worker.onfail = fail => rpc.onfail?.(fail, url)
       }
-      this[data.call](data)
     }
-    this.worker.onmessageerror = error => rpc.onmessageerror?.(error, url)
-    this.worker.onerror = error => rpc.onerror?.(error, url)
-    this.worker.onfail = fail => rpc.onfail?.(fail, url)
   }
 
   async proxyRpc ({ url, callbackId, method, args }) {
