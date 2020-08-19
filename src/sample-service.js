@@ -1,6 +1,9 @@
 import install from './rpc-worker-include.js'
 import Shared32Array from '../lib/shared-array-buffer.js'
 
+// hacky way to switch api urls from dev to prod
+const API_URL = location.port.length === 4 ? 'http://localhost:3000' : location.origin
+
 export default audio => {
   const samples = new Map
 
@@ -8,7 +11,7 @@ export default audio => {
     methods: {
       fetchSample: async url => {
         if (url[0] !== '/') {
-          url = location.origin + '/fetch?url=' + encodeURIComponent(url)
+          url = API_URL + '/fetch?url=' + encodeURIComponent(url)
         } else {
           url = new URL(url, location.href).href
         }
