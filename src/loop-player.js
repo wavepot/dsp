@@ -8,7 +8,8 @@ import './global-service.js'
 mixWorker.queueUpdates = true
 
 export default class LoopPlayer {
-  constructor (fn, { numberOfChannels = 2, bpm = 125 } = {}) {
+  constructor (name, fn, { numberOfChannels = 2, bpm = 125 } = {}) {
+    this.name = name
     this.fn = fn
     this.bpm = bpm
     this.numberOfChannels = numberOfChannels
@@ -64,18 +65,17 @@ export default class LoopPlayer {
     let n = this.context.n
 
     if (this.node.remainTime < this.avgRenderTime) {
-      console.warn('not enough time, trying for next buffer:', this.node.remainTime, this.avgRenderTime)
+      console.warn(`[${this.name}] not enough time, trying for next buffer:`, this.node.remainTime, this.avgRenderTime)
       n += this.buffer[0].length
     }
     // console.log(this.node.remainTime)
 
-    console.log('will render:', n)
+    console.log(`[${this.name}] will render:`, n)
     try {
       await this.mix(this.fn, { n })
-      console.log('return mix n:', this.mix.n)
     } catch (error) {
       this.onerror?.(error)
-      console.error(error)
+      console.error(this.name, error)
       return
     }
 
@@ -85,17 +85,17 @@ export default class LoopPlayer {
     // }
 
     if (this.mix.n < this.context.n) {
-      console.warn('too late, discard:', this.mix.n, this.context.n)
+      console.warn(`[${this.name}] too late, discard:`, this.mix.n, this.context.n)
       return
     }
 
     if (!this.playing) {
-      console.warn('not playing, discard:', n)
+      console.warn(`[${this.name}] not playing, discard:`, n)
       return
     }
 
     const diff = performance.now() - time
-    console.log('time to render:', diff)
+    console.log(`[${this.name}] render took:`, diff)
     if (diff > 1000) console.warn('too slow!', (diff/1000).toFixed(1) + 's' )
 
     this.maxRenderTime = Math.max(diff/1000, this.maxRenderTime)
@@ -106,7 +106,7 @@ export default class LoopPlayer {
     }
     // this.avgRenderTime = Math.max(diff/1000, this.maxRenderTime)
 
-    console.log('will play:', n)
+    console.log(`[${this.name}] will play:`, n)
     if (initial) {
       // this.node.resetTime?.(-3)
       this.node.start()
