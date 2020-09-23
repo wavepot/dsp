@@ -117,6 +117,13 @@ export default class LoopPlayer {
     this.onrender?.(this.buffer)
   }
 
+  setVolume (vol) {
+    this.node.gain.gain.linearRampToValueAtTime(
+      vol,
+      this.node.context.currentTime + 0.1
+    )
+  }
+
   start () {
     this.maxRenderTime = 0
     this.avgRenderTime = -1
