@@ -10,7 +10,7 @@ export const rpcs = new Map
 
 const rpc = (url, method, args = []) => getRpc(url).rpc(method, args)
 rpc.get = url => getRpc(url)
-rpc.update = url => getRpc(url).worker.updateInstance()
+rpc.update = (url, noCreate = false) => getRpc(url, noCreate)?.worker?.updateInstance()
 rpc.markAsSafe = url => getRpc(url).worker.markAsSafe()
 rpc.clear = () => rpcs.clear()
 rpc.clearHanging = error => { [...callbacks.values()].forEach(fn => fn.reject(error)), callbacks.clear() }
@@ -37,6 +37,8 @@ class Rpc {
         this.worker = new SafeDynamicWorker(url)
         workers.set(url, this.worker)
         this.bindListeners()
+      } else if (this.worker.paused) {
+        this.worker.updateInstance()
       }
     }
   }
@@ -49,9 +51,10 @@ class Rpc {
       }
       this[data.call](data)
     }
-    this.worker.onmessageerror = error => rpc.onmessageerror?.(error, url)
-    this.worker.onerror = error => rpc.onerror?.(error, url)
-    this.worker.onfail = fail => rpc.onfail?.(fail, url)
+    this.worker.onmessageerror = error => rpc.onmessageerror?.(error, this.url)
+    this.worker.onerror = error => rpc.onerror?.(error, this.url)
+    this.worker.onfail = fail => rpc.onfail?.(fail, this.url)
+    this.worker.onpause = () => rpcs.delete(this.url)
   }
 
   async proxyRpc ({ url, callbackId, method, args }) {
@@ -133,10 +136,13 @@ class RpcProxy {
   }
 }
 
-const getRpc = url => {
+const getRpc = (url, noCreate = false) => {
   url = new URL(url, location.href).href
   if (isMain) {
-    if (!rpcs.has(url)) rpcs.set(url, new Rpc(url))
+    if (!rpcs.has(url)) {
+      if (noCreate) return
+      rpcs.set(url, new Rpc(url))
+    }
     return rpcs.get(url)
   } else {
     return new RpcProxy(url)

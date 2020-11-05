@@ -4,15 +4,13 @@ export default async (fn, context) => {
   const { buffer } = context
   const numOfChannels = buffer.length
 
-// console.log('N IS', context.n, context.frame)
   assertFinite(context.n)
 
   if (numOfChannels > 2) {
     throw new RangeError('unsupported number of channels [' + numOfChannels + ']')
   }
 
-  // context.prepare()
-  // context.tick()
+  context.update()
 
   let result
   if (fn.constructor.name === 'AsyncFunction') {
@@ -26,7 +24,6 @@ export default async (fn, context) => {
     return
   }
 
-// console.log('N IS', context.n)
   if (typeof result === 'object' && '0' in result && typeof result[0] === 'number') {
     if (numOfChannels === 1) {
       buffer[0][0] = (
@@ -41,7 +38,6 @@ export default async (fn, context) => {
     renderStereo(fn, context)
     return context
   } else if (typeof result === 'number') {
-    // console.log('result is', result, context.toJSON())
     buffer[0][0] = assertFinite(result) / numOfChannels
     context.tick()
     renderMono(fn, context)

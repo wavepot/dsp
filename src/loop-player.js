@@ -64,10 +64,10 @@ export default class LoopPlayer {
 
     let n = this.context.n
 
-    if (this.node.remainTime < this.avgRenderTime) {
-      console.warn(`[${this.name}] not enough time, trying for next buffer:`, this.node.remainTime, this.avgRenderTime)
-      n += this.buffer[0].length
-    }
+    // if (this.node.remainTime < this.avgRenderTime) {
+    //   console.warn(`[${this.name}] not enough time, trying for next buffer:`, this.node.remainTime, this.avgRenderTime)
+    //   n += this.buffer[0].length
+    // }
     // console.log(this.node.remainTime)
 
     console.log(`[${this.name}] will render:`, n)
@@ -84,10 +84,10 @@ export default class LoopPlayer {
     //   return
     // }
 
-    if (this.mix.n < this.context.n) {
-      console.warn(`[${this.name}] too late, discard:`, this.mix.n, this.context.n)
-      return
-    }
+    // if (this.mix.n < this.context.n) {
+    //   console.warn(`[${this.name}] too late, discard:`, this.mix.n, this.context.n)
+    //   return
+    // }
 
     if (!this.playing) {
       console.warn(`[${this.name}] not playing, discard:`, n)

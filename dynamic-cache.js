@@ -2,7 +2,7 @@ export default class DynamicCache {
   static async cleanup () {
     const cacheKeys = await window.caches.keys()
     await Promise.all(cacheKeys
-      .filter(key => key.startsWith('dynamic-cache:'))
+      // .filter(key => key.startsWith('dynamic-cache:')) //TODO: enable this in prod
       .map(key => window.caches.delete(key))
     )
   }

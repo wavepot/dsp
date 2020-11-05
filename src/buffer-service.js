@@ -21,6 +21,7 @@ const garbageCollect = match => {
 }
 
 const BufferService = {
+  buffers,
   methods: {
     getBuffer: (checksum, size, channels = 2) => {
       const id = (checksum + size + channels).toString()

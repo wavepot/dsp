@@ -31,15 +31,15 @@ const setup = async (url, context) => {
   self.fn = (await import(self.url)).default
 
   // test a render
-  await render({
-    ...context,
-    id: 'test',
-    url: self.url,
-    buffer: [
-      new Float32Array(4),
-      new Float32Array(4)
-    ]
-  })
+  // await render({
+  //   ...context,
+  //   id: 'test',
+  //   url: self.url,
+  //   buffer: [
+  //     new Float32Array(4),
+  //     new Float32Array(4)
+  //   ]
+  // })
 
   self.hasSetup = true
   self.methods.render = atomic(async (url, context) => {

@@ -22,6 +22,7 @@ export default audio => {
           const res = await fetch(url)
           const arrayBuffer = await res.arrayBuffer()
           const audioBuffer = await audio.decodeAudioData(arrayBuffer)
+          console.log('got audiobuffer', url, audioBuffer)
           const floats = Array(audioBuffer.numberOfChannels).fill(0).map((_, i) =>
             audioBuffer.getChannelData(i))
           sample = floats.map(buf => {

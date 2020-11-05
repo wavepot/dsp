@@ -43,7 +43,6 @@ const install = self => {
         replyTo: data.message.callbackId,
         error
       })
-      // self.postMessage({ call: 'onerror', error })
     }
   }
 

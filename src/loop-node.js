@@ -46,7 +46,7 @@ export default class LoopNode {
   }
 
   get bufferSize () {
-    return this.beatRate * 4 /// 5 | 0
+    return this.beatRate * 4 //* 4 /// 5 | 0
   }
 
   resetTime (offset = 0) {
@@ -97,7 +97,6 @@ export default class LoopNode {
   }
 
   playBuffer (buffer) {
-    // console.log('should render buffer:', buffer[0].slice(0,3))
     const syncTime = this.syncTime
     const output = this.nextBuffer
     for (let i = 0; i < this.numberOfChannels; i++) {
@@ -110,7 +109,6 @@ export default class LoopNode {
     }
 
     if (!this.scheduledNode) {
-      // console.log('schedule for', syncTime)
       const node = this.scheduledNode = this.context.createBufferSource()
       node.buffer = this.nextBuffer
       node.connect(this.gain)

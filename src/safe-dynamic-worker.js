@@ -1,6 +1,8 @@
 const dispatch = listeners => event =>
   listeners.forEach(fn => fn(event))
 
+const PAUSE_TIMEOUT = 10 * 1000 // 10 secs
+
 export default class SafeDynamicWorker {
   constructor (url) {
     this.url = url
@@ -14,6 +16,8 @@ export default class SafeDynamicWorker {
       onmessageerror: [],
       onfail: []
     }
+
+    this.pause = this.pause.bind(this)
 
     this.updateInstance()
   }
@@ -68,6 +72,9 @@ export default class SafeDynamicWorker {
   }
 
   examineAck ({ data }) {
+    clearTimeout(this.timeout)
+    this.timeout = setTimeout(this.pause, PAUSE_TIMEOUT)
+
     if (data.ack) {
       this.pendingAckMessages =
       this.pendingAckMessages
@@ -91,6 +98,30 @@ export default class SafeDynamicWorker {
     this.worker = new Worker(this.url, { type: 'module' })
     this.bindListeners()
     this.retryMessages()
+
+    this.paused = false
+    clearTimeout(this.timeout)
+    this.timeout = setTimeout(this.pause, PAUSE_TIMEOUT)
+  }
+
+  pause () {
+    try {
+      if (this.worker) {
+        this.worker.terminate()
+      }
+      this.worker = null
+    } catch {}
+
+    try {
+      if (this.safe) {
+        this.safe.terminate()
+      }
+      this.safe = null
+    } catch {}
+
+    this.paused = true
+    this.onpause()
+    console.log('worker paused: ', this.url)
   }
 
   bindListeners () {
@@ -106,6 +137,9 @@ export default class SafeDynamicWorker {
   }
 
   postMessage (message, transfer) {
+    clearTimeout(this.timeout)
+    this.timeout = setTimeout(this.pause, PAUSE_TIMEOUT)
+
     const payload = {
       ackId: ++this.ackId,
       message

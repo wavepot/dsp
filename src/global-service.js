@@ -4,6 +4,8 @@ const values = new Map
 const ttlMap = new Map
 
 const GlobalService = {
+  values,
+  ttlMap,
   methods: {
     get: id => {
       const value = values.get(id)
@@ -32,10 +34,10 @@ setInterval(() => {
     if (now > time + ttl) {
       ttlMap.delete(id)
       values.delete(id)
-      console.warn('gs gc:', id, ttl, [values.size])
+      console.log('gs gc:', id, ttl, [values.size])
     }
   }
-  if (values.size > 10) {
+  if (values.size > 30) {
     console.warn('gs: too many values:', values.size)
   }
 }, 1000)
